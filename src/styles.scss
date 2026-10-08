@@ -1,0 +1,191 @@
+// ======================================================
+// CLINIC BOOKING — Global Styles & Design System
+// ======================================================
+
+// Angular Material custom theme — @use PHẢI đứng đầu file
+@use '@angular/material' as mat;
+
+// --- Custom palette ---
+$clinic-primary: mat.define-palette(mat.$blue-palette, 700, 400, 900);
+$clinic-accent:  mat.define-palette(mat.$teal-palette, 600, 300, 800);
+$clinic-warn:    mat.define-palette(mat.$red-palette, 600);
+
+$clinic-theme: mat.define-light-theme((
+  color: (
+    primary: $clinic-primary,
+    accent:  $clinic-accent,
+    warn:    $clinic-warn,
+  ),
+  typography: mat.define-typography-config(
+    $font-family: "'Inter', sans-serif",
+  ),
+));
+
+@include mat.all-component-themes($clinic-theme);
+
+// Import Google Fonts (sau @use)
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+// ======================================================
+// CSS Custom Properties (Design Tokens)
+// ======================================================
+:root {
+  // Colors
+  --primary-color:   #1565c0;
+  --primary-dark:    #0d47a1;
+  --primary-light:   #42a5f5;
+  --accent-color:    #00897b;
+  --warn-color:      #e53935;
+
+  // Text
+  --text-primary:    #1a1a2e;
+  --text-secondary:  #6b7280;
+  --text-disabled:   #9ca3af;
+  --text-on-primary: #ffffff;
+
+  // Background
+  --bg-page:         #f5f7fa;
+  --bg-surface:      #ffffff;
+  --bg-subtle:       #f9fafb;
+
+  // Border
+  --border-color:    #e5e7eb;
+  --border-radius:   8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+
+  // Shadow
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  // Spacing
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+}
+
+// ======================================================
+// Reset & Base
+// ======================================================
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ======================================================
+// Typography Overrides
+// ======================================================
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+// ======================================================
+// Material Overrides
+// ======================================================
+
+// Form fields
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-container-shape: 8px;
+}
+
+// Buttons
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-flat-button,
+.mat-mdc-stroked-button {
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
+}
+
+// Cards
+.mat-mdc-card {
+  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg) !important;
+}
+
+// Sidenav
+.mat-drawer-container {
+  background: var(--bg-page) !important;
+}
+
+// Snackbar success/error
+.success-snackbar {
+  --mdc-snackbar-container-color: #2e7d32;
+  --mdc-snackbar-supporting-text-color: #ffffff;
+}
+
+.error-snackbar {
+  --mdc-snackbar-container-color: #c62828;
+  --mdc-snackbar-supporting-text-color: #ffffff;
+}
+
+// ======================================================
+// Utility Classes
+// ======================================================
+
+// Flex
+.d-flex          { display: flex; }
+.align-center    { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-sm          { gap: var(--space-sm); }
+.gap-md          { gap: var(--space-md); }
+.flex-1          { flex: 1; }
+
+// Text
+.text-primary    { color: var(--text-primary) !important; }
+.text-secondary  { color: var(--text-secondary) !important; }
+.text-muted      { color: var(--text-disabled) !important; }
+.text-center     { text-align: center; }
+.fw-600          { font-weight: 600; }
+.fw-700          { font-weight: 700; }
+.fs-12           { font-size: 12px; }
+.fs-14           { font-size: 14px; }
+
+// Spacing
+.mt-0  { margin-top: 0 !important; }
+.mb-0  { margin-bottom: 0 !important; }
+.p-0   { padding: 0 !important; }
+.full-width { width: 100%; }
+
+// ======================================================
+// Scrollbar Styling
+// ======================================================
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+
+  &:hover {
+    background: #9ca3af;
+  }
+}
