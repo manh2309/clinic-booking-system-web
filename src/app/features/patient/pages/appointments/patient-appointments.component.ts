@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -130,7 +131,7 @@ export class PatientAppointmentsComponent implements OnInit {
     private appointmentService: AppointmentService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private router: { navigate: (commands: string[]) => void } & { navigate: (c: string[]) => void }
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -195,6 +196,6 @@ export class PatientAppointmentsComponent implements OnInit {
   }
 
   goToDoctors(): void {
-    (this.router as { navigate: (c: string[]) => void }).navigate(['/patient/doctors']);
+    this.router.navigate(['/patient/doctors']);
   }
 }
