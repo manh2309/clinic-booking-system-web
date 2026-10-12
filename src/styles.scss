@@ -4,6 +4,10 @@
 
 // Angular Material custom theme — @use PHẢI đứng đầu file
 @use '@angular/material' as mat;
+@use '@angular/cdk' as cdk;
+
+@include mat.core();
+@include cdk.overlay();
 
 // --- Custom palette ---
 $clinic-primary: mat.define-palette(mat.$blue-palette, 700, 400, 900);
@@ -26,6 +30,55 @@ $clinic-theme: mat.define-light-theme((
 // Import Google Fonts (sau @use)
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+// ======================================================
+// CDK Overlay Critical Fix (Đảm bảo popup mở đúng vị trí)
+// ======================================================
+.cdk-overlay-container {
+  position: fixed !important;
+  z-index: 1050 !important;
+  pointer-events: none;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.cdk-overlay-backdrop {
+  position: absolute !important;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1050 !important;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  opacity: 0;
+
+  &.cdk-overlay-backdrop-showing {
+    opacity: 1;
+  }
+}
+
+.cdk-overlay-connected-position-bounding-box {
+  position: absolute !important;
+  z-index: 1050 !important;
+  display: flex;
+  flex-direction: column;
+  min-width: 1px;
+  min-height: 1px;
+}
+
+.cdk-overlay-pane {
+  position: absolute !important;
+  pointer-events: auto;
+  box-sizing: border-box;
+  z-index: 1050 !important;
+  display: flex;
+  max-width: 100%;
+  max-height: 100%;
+}
 
 // ======================================================
 // CSS Custom Properties (Design Tokens)

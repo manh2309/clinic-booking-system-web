@@ -20,15 +20,27 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
     PageHeaderComponent, StatusChipComponent,
   ],
   template: `
-    <div>
-      <app-page-header
-        title="Dashboard"
-        [subtitle]="'Xin chào, Bác sĩ ' + (currentUser?.fullName ?? currentUser?.username ?? '') + '!'"
-      ></app-page-header>
+    <div class="doctor-dashboard-page">
+      <!-- Doctor Hero -->
+      <div class="doctor-hero">
+        <div class="hero-left">
+          <div class="hero-badge">Không gian làm việc Chuyên môn</div>
+          <h1 class="hero-title">Xin chào, Bác sĩ {{ currentUser?.fullName ?? currentUser?.username }}!</h1>
+          <p class="hero-sub">
+            Chúc bác sĩ một ngày làm việc hiệu quả. Hãy theo dõi và xử lý các ca hẹn khám của bệnh nhân bên dưới.
+          </p>
+        </div>
+        <div class="hero-right">
+          <a mat-flat-button color="primary" routerLink="/doctor/schedule" class="hero-btn">
+            <mat-icon>calendar_month</mat-icon>
+            <span>Đăng ký ca làm việc</span>
+          </a>
+        </div>
+      </div>
 
       <!-- Stats Row -->
       <div class="stats-row">
-        <mat-card class="stat-card stat-card--pending">
+        <mat-card class="stat-card stat-pending">
           <mat-card-content>
             <div class="stat-icon"><mat-icon>pending_actions</mat-icon></div>
             <div class="stat-info">
@@ -38,7 +50,7 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="stat-card stat-card--confirmed">
+        <mat-card class="stat-card stat-confirmed">
           <mat-card-content>
             <div class="stat-icon"><mat-icon>event_available</mat-icon></div>
             <div class="stat-info">
@@ -48,22 +60,22 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="stat-card stat-card--completed">
+        <mat-card class="stat-card stat-completed">
           <mat-card-content>
             <div class="stat-icon"><mat-icon>check_circle</mat-icon></div>
             <div class="stat-info">
               <div class="stat-value">{{ completedCount }}</div>
-              <div class="stat-label">Hoàn thành</div>
+              <div class="stat-label">Đã hoàn thành</div>
             </div>
           </mat-card-content>
         </mat-card>
 
-        <mat-card class="stat-card stat-card--schedules">
+        <mat-card class="stat-card stat-schedules">
           <mat-card-content>
-            <div class="stat-icon"><mat-icon>calendar_month</mat-icon></div>
+            <div class="stat-icon"><mat-icon>schedule</mat-icon></div>
             <div class="stat-info">
               <div class="stat-value">{{ schedules.length }}</div>
-              <div class="stat-label">Lịch làm việc</div>
+              <div class="stat-label">Ca khám mở</div>
             </div>
           </mat-card-content>
         </mat-card>
@@ -71,42 +83,121 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
 
       <!-- Recent Appointments -->
       <mat-card class="recent-card">
-        <mat-card-header>
-          <mat-card-title>Lịch hẹn gần đây</mat-card-title>
-          <span class="spacer"></span>
-          <a mat-button color="primary" routerLink="/doctor/appointments">Xem tất cả</a>
-        </mat-card-header>
+        <div class="card-header-custom">
+          <div>
+            <h2 class="card-title">Danh sách Lịch hẹn gần đây</h2>
+            <p class="card-subtitle">Các bệnh nhân đã đăng ký khám trong ca của bạn</p>
+          </div>
+          <a mat-stroked-button color="primary" routerLink="/doctor/appointments" class="view-all-btn">
+            <span>Xem tất cả</span>
+            <mat-icon>arrow_forward</mat-icon>
+          </a>
+        </div>
+
         <mat-card-content>
-          <div class="appt-list">
+          <div class="appt-list" *ngIf="recentAppointments.length > 0">
             <div class="appt-row" *ngFor="let a of recentAppointments">
               <div class="appt-time">
                 <div class="time-val">{{ a.startAt | date:'HH:mm' }}</div>
-                <div class="date-val">{{ a.startAt | date:'dd/MM' }}</div>
+                <div class="date-val">{{ a.startAt | date:'dd/MM/yyyy' }}</div>
               </div>
               <div class="appt-patient">
-                <mat-icon>person</mat-icon>
-                Bệnh nhân #{{ a.patientAccountId }}
+                <div class="patient-avatar"><mat-icon>person</mat-icon></div>
+                <div class="patient-info">
+                  <span class="patient-name">Mã bệnh nhân #{{ a.patientAccountId }}</span>
+                  <span class="patient-desc">Phiếu khám số #{{ a.id }}</span>
+                </div>
               </div>
-              <app-status-chip [status]="mapStatus(a.status)"></app-status-chip>
+              <div class="appt-status">
+                <app-status-chip [status]="mapStatus(a.status)"></app-status-chip>
+              </div>
             </div>
+          </div>
 
-            <div class="empty-text" *ngIf="recentAppointments.length === 0">
-              Chưa có lịch hẹn nào
-            </div>
+          <div class="empty-state" *ngIf="recentAppointments.length === 0">
+            <div class="empty-icon"><mat-icon>event_busy</mat-icon></div>
+            <p class="empty-text">Hiện chưa có lịch hẹn khám nào được đặt</p>
+            <p class="empty-sub">Các lịch hẹn mới của bệnh nhân sẽ tự động hiển thị tại đây.</p>
           </div>
         </mat-card-content>
       </mat-card>
     </div>
   `,
   styles: [`
+    .doctor-dashboard-page {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .doctor-hero {
+      background: linear-gradient(135deg, #042f2e 0%, #115e59 100%);
+      border-radius: 16px;
+      padding: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      color: #ffffff;
+      box-shadow: 0 10px 25px -5px rgba(4, 47, 46, 0.25);
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #5eead4;
+      background: rgba(94, 234, 212, 0.15);
+      border: 1px solid rgba(94, 234, 212, 0.3);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      margin-bottom: 8px;
+    }
+
+    .hero-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0 0 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-sub {
+      font-size: 14px;
+      color: #ccfbf1;
+      margin: 0;
+      max-width: 580px;
+      line-height: 1.5;
+    }
+
+    .hero-btn {
+      height: 44px;
+      padding: 0 18px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      background: #0d9488 !important;
+      box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4) !important;
+    }
+
     .stats-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 16px;
-      margin-bottom: 20px;
     }
 
-    .stat-card { border-radius: 12px; }
+    .stat-card {
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+      transition: transform 0.2s;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+    }
 
     .stat-card mat-card-content {
       display: flex;
@@ -118,67 +209,163 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
     .stat-icon {
       width: 52px;
       height: 52px;
-      border-radius: 12px;
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      mat-icon { font-size: 28px; width: 28px; height: 28px; }
+      flex-shrink: 0;
+
+      mat-icon { font-size: 26px; width: 26px; height: 26px; }
     }
 
-    .stat-card--pending   .stat-icon { background: #fff3e0; mat-icon { color: #e65100; } }
-    .stat-card--confirmed .stat-icon { background: #e3f2fd; mat-icon { color: #1565c0; } }
-    .stat-card--completed .stat-icon { background: #e8f5e9; mat-icon { color: #2e7d32; } }
-    .stat-card--schedules .stat-icon { background: #f3e5f5; mat-icon { color: #7b1fa2; } }
+    .stat-pending   { .stat-icon { background: #fef3c7; mat-icon { color: #d97706; } } }
+    .stat-confirmed { .stat-icon { background: #e0f2fe; mat-icon { color: #0284c7; } } }
+    .stat-completed { .stat-icon { background: #dcfce7; mat-icon { color: #16a34a; } } }
+    .stat-schedules { .stat-icon { background: #ccfbf1; mat-icon { color: #0d9488; } } }
 
-    .stat-value { font-size: 28px; font-weight: 700; color: #1a1a2e; line-height: 1; }
-    .stat-label { font-size: 13px; color: #6b7280; margin-top: 2px; }
+    .stat-value { font-size: 30px; font-weight: 800; color: #0f172a; line-height: 1; }
+    .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; font-weight: 500; }
 
-    .recent-card { border-radius: 12px; }
+    .recent-card {
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    }
 
-    .recent-card mat-card-header {
+    .card-header-custom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .card-subtitle {
+      font-size: 13px;
+      color: #64748b;
+      margin: 2px 0 0;
+    }
+
+    .view-all-btn {
+      border-radius: 10px;
       display: flex;
       align-items: center;
+      gap: 6px;
+      font-weight: 600;
     }
-
-    .spacer { flex: 1; }
 
     .appt-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-top: 8px;
     }
 
     .appt-row {
       display: flex;
       align-items: center;
-      gap: 16px;
-      padding: 12px 0;
-      border-bottom: 1px solid #f3f4f6;
+      gap: 20px;
+      padding: 16px 24px;
+      border-bottom: 1px solid #f1f5f9;
+      transition: background 0.15s;
+
+      &:last-child { border-bottom: none; }
+      &:hover { background: #f8fafc; }
     }
 
     .appt-time {
-      min-width: 56px;
+      min-width: 80px;
       text-align: center;
+      padding: 6px 12px;
+      background: #f1f5f9;
+      border-radius: 10px;
     }
 
-    .time-val { font-size: 16px; font-weight: 700; color: #1a1a2e; }
-    .date-val { font-size: 12px; color: #6b7280; }
+    .time-val { font-size: 15px; font-weight: 700; color: #0f172a; }
+    .date-val { font-size: 11px; color: #64748b; margin-top: 2px; }
 
     .appt-patient {
       flex: 1;
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      color: #374151;
-      mat-icon { color: #6b7280; font-size: 18px; width: 18px; height: 18px; }
+      gap: 12px;
     }
 
-    .empty-text { color: #9ca3af; font-size: 14px; padding: 16px 0; text-align: center; }
+    .patient-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #e0f2fe;
+      color: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-    @media (max-width: 768px) {
+    .patient-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .patient-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .patient-desc {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .empty-state {
+      padding: 48px 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .empty-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+
+      mat-icon { font-size: 32px; width: 32px; height: 32px; }
+    }
+
+    .empty-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: #334155;
+      margin: 0;
+    }
+
+    .empty-sub {
+      font-size: 13px;
+      color: #94a3b8;
+      margin: 4px 0 0;
+    }
+
+    @media (max-width: 900px) {
       .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .doctor-hero { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .appt-row { flex-wrap: wrap; }
     }
   `],
 })

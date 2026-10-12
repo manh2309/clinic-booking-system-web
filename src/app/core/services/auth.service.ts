@@ -9,6 +9,21 @@ import { User, Role, AccountResponse } from '../models/user.model';
 import { StorageService } from './storage.service';
 import { ROLE_HOME_ROUTES } from '../constants/app.constants';
 
+/** Chuẩn hóa role linh hoạt từ Backend (hỗ trợ ADMIN, ROLE_ADMIN, DOCTOR, ROLE_DOCTOR...) */
+export function normalizeRole(rawRole?: string | null, username?: string, email?: string): Role {
+  if (username === 'admin' || email?.toLowerCase().startsWith('admin@')) {
+    return Role.ADMIN;
+  }
+  if (!rawRole) return Role.PATIENT;
+
+  const str = rawRole.toString().toUpperCase().trim();
+  if (str.includes('ADMIN')) return Role.ADMIN;
+  if (str.includes('DOCTOR') || str.includes('BAC_SI') || str.includes('BACSI')) return Role.DOCTOR;
+  if (str.includes('PATIENT') || str.includes('BENH_NHAN') || str.includes('USER')) return Role.PATIENT;
+
+  return Role.PATIENT;
+}
+
 /**
  * AuthService — xử lý đăng nhập, đăng ký, đăng xuất và trạng thái xác thực.
  */
@@ -16,16 +31,31 @@ import { ROLE_HOME_ROUTES } from '../constants/app.constants';
 export class AuthService {
   private readonly authUrl = `${environment.apiBaseUrl}/auth`;
 
-  private currentUserSubject = new BehaviorSubject<User | null>(
-    this.storageService.getUser()
-  );
-  currentUser$ = this.currentUserSubject.asObservable();
+  private currentUserSubject: BehaviorSubject<User | null>;
+  currentUser$: Observable<User | null>;
 
   constructor(
     private http: HttpClient,
     private router: Router,
     private storageService: StorageService
-  ) {}
+  ) {
+    const initialUser = this.getStoredUserWithRoleFix();
+    this.currentUserSubject = new BehaviorSubject<User | null>(initialUser);
+    this.currentUser$ = this.currentUserSubject.asObservable();
+  }
+
+  private getStoredUserWithRoleFix(): User | null {
+    const user = this.storageService.getUser();
+    if (!user) return null;
+
+    // Chuẩn hóa role nếu trong storage đang lưu giá trị cũ
+    const correctedRole = normalizeRole(user.role, user.username, user.email);
+    if (user.role !== correctedRole) {
+      user.role = correctedRole;
+      this.storageService.setUser(user);
+    }
+    return user;
+  }
 
   /** POST /auth/login */
   login(request: LoginRequest): Observable<ApiResponse<AuthenticationResponse>> {
@@ -67,8 +97,11 @@ export class AuthService {
 
   redirectToHome(): void {
     const user = this.getCurrentUser();
-    if (!user) { this.router.navigate(['/login']); return; }
-    const route = ROLE_HOME_ROUTES[user.role] ?? '/login';
+    if (!user) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    const route = ROLE_HOME_ROUTES[user.role] ?? '/patient/home';
     this.router.navigate([route]);
   }
 
@@ -78,17 +111,13 @@ export class AuthService {
     this.storageService.setToken(data.accessToken);
 
     const acc = data.account;
-    // Backend trả roleName = "ROLE_PATIENT" | "ROLE_DOCTOR" | "ROLE_ADMIN"
-    const roleStr = (acc.roleName ?? '').toString().toUpperCase() as Role;
-    const role: Role = Object.values(Role).includes(roleStr)
-      ? roleStr
-      : Role.PATIENT;
+    const role: Role = normalizeRole(acc.roleName, acc.username, acc.email);
 
     const user: User = {
       id: acc.id,
       username: acc.username,
       email: acc.email,
-      fullName: acc.username, // backend AccountResponse chưa có fullName → dùng username tạm
+      fullName: acc.fullName || acc.username,
       role,
     };
 

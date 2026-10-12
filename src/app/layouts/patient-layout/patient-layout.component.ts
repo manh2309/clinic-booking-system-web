@@ -8,7 +8,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatDividerModule } from '@angular/material/divider';
 import { NgIf, NgFor } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
-import { User } from '../../core/models/user.model';
+import { User, Role } from '../../core/models/user.model';
 
 interface NavItem {
   label: string;
@@ -88,29 +88,58 @@ interface NavItem {
               </mat-icon>
             </button>
 
-            <!-- User Menu -->
+            <!-- User Menu Chip (Fixed layout & positioning) -->
             <button
-              mat-button
+              type="button"
               [matMenuTriggerFor]="userMenu"
-              class="user-menu-btn"
+              class="user-chip-btn"
               aria-label="Menu tài khoản"
             >
               <div class="user-avatar" *ngIf="currentUser">
                 <span>{{ getInitials(currentUser.fullName) }}</span>
               </div>
               <div class="user-info" *ngIf="currentUser">
-                <span class="user-name">{{ currentUser.fullName }}</span>
-                <span class="user-role">Bệnh nhân</span>
+                <span class="user-name">{{ currentUser.fullName || currentUser.username }}</span>
+                <span class="user-role" [class]="'role-' + currentUser.role.toLowerCase()">
+                  {{ getRoleLabel(currentUser.role) }}
+                </span>
               </div>
               <mat-icon class="arrow-icon">expand_more</mat-icon>
             </button>
 
             <mat-menu #userMenu="matMenu" class="premium-menu">
               <div class="menu-header" *ngIf="currentUser">
-                <p class="menu-name">{{ currentUser.fullName }}</p>
+                <p class="menu-name">{{ currentUser.fullName || currentUser.username }}</p>
                 <p class="menu-email">{{ currentUser.email }}</p>
+                <span class="menu-role-tag" [class]="'tag-' + currentUser.role.toLowerCase()">
+                  {{ getRoleLabel(currentUser.role) }}
+                </span>
               </div>
               <mat-divider></mat-divider>
+
+              <!-- Portal Switch Buttons nếu là Admin hoặc Doctor -->
+              <button
+                mat-menu-item
+                *ngIf="currentUser?.role === Role.ADMIN"
+                routerLink="/admin/dashboard"
+                class="portal-switch-item"
+              >
+                <mat-icon color="warn">admin_panel_settings</mat-icon>
+                <span><strong>Bảng Điều Khiển Quản Trị</strong></span>
+              </button>
+
+              <button
+                mat-menu-item
+                *ngIf="currentUser?.role === Role.DOCTOR"
+                routerLink="/doctor/dashboard"
+                class="portal-switch-item"
+              >
+                <mat-icon color="primary">medical_services</mat-icon>
+                <span><strong>Bàn Làm Việc Bác Sĩ</strong></span>
+              </button>
+
+              <mat-divider *ngIf="isStaff()"></mat-divider>
+
               <button mat-menu-item routerLink="/patient/profile">
                 <mat-icon color="primary">account_circle</mat-icon>
                 <span>Hồ sơ cá nhân</span>
@@ -341,69 +370,100 @@ interface NavItem {
       color: #475569;
     }
 
-    .user-menu-btn {
-      display: flex;
+    .user-chip-btn {
+      display: inline-flex;
       align-items: center;
       gap: 10px;
-      padding: 6px 12px;
-      border-radius: 12px;
-      background: #f8fafc;
+      padding: 5px 14px 5px 6px;
+      border-radius: 9999px;
+      background: #ffffff;
       border: 1px solid #e2e8f0;
-      transition: all 0.2s;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 
       &:hover {
-        background: #f1f5f9;
-        border-color: #cbd5e1;
+        background: #f8fafc;
+        border-color: #38bdf8;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12);
       }
     }
 
     .user-avatar {
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 14px;
+      font-weight: 800;
       box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2);
+      flex-shrink: 0;
     }
 
     .user-info {
       display: flex;
       flex-direction: column;
+      align-items: flex-start;
       text-align: left;
+      line-height: 1.25;
     }
 
     .user-name {
       font-size: 13px;
       font-weight: 700;
       color: #0f172a;
-      max-width: 130px;
+      max-width: 140px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      line-height: 1.2;
+      display: block;
     }
 
     .user-role {
       font-size: 11px;
-      color: #0284c7;
-      font-weight: 600;
+      font-weight: 700;
+      display: block;
+
+      &.role-admin { color: #dc2626; }
+      &.role-doctor { color: #0d9488; }
+      &.role-patient { color: #0284c7; }
     }
 
     .arrow-icon {
-      color: #94a3b8;
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+      color: #64748b;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-left: 2px;
     }
 
     /* DROPDOWN MENU */
     .menu-header {
-      padding: 12px 16px 8px;
+      padding: 12px 16px 10px;
+    }
+
+    .menu-role-tag {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 9999px;
+
+      &.tag-admin { background: #fee2e2; color: #b91c1c; }
+      &.tag-doctor { background: #ccfbf1; color: #0f766e; }
+      &.tag-patient { background: #e0f2fe; color: #0369a1; }
+    }
+
+    .portal-switch-item {
+      background: #f8fafc;
+      &:hover { background: #f1f5f9; }
     }
 
     .menu-name {
@@ -562,6 +622,7 @@ interface NavItem {
   `],
 })
 export class PatientLayoutComponent implements OnInit {
+  readonly Role = Role;
   currentUser: User | null = null;
   unreadCount = 0;
 
@@ -578,6 +639,17 @@ export class PatientLayoutComponent implements OnInit {
     this.authService.currentUser$.subscribe((user) => {
       this.currentUser = user;
     });
+  }
+
+  getRoleLabel(role?: Role): string {
+    if (!role) return 'Bệnh nhân';
+    if (role === Role.ADMIN) return 'Quản trị viên';
+    if (role === Role.DOCTOR) return 'Bác sĩ';
+    return 'Bệnh nhân';
+  }
+
+  isStaff(): boolean {
+    return this.currentUser?.role === Role.ADMIN || this.currentUser?.role === Role.DOCTOR;
   }
 
   getInitials(name?: string): string {
