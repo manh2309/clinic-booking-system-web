@@ -3,7 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
-import { SpecialtyResponse, CreateSpecialtyRequest, UpdateSpecialtyRequest } from '../models/domain.model';
+import {
+  SpecialtyResponse,
+  CreateSpecialtyRequest,
+  UpdateSpecialtyRequest,
+  UpdateSpecialtyStatusRequest,
+} from '../models/domain.model';
 
 @Injectable({ providedIn: 'root' })
 export class SpecialtyService {
@@ -25,5 +30,10 @@ export class SpecialtyService {
   /** PUT /admin/specialties/{id} */
   update(id: number, request: UpdateSpecialtyRequest): Observable<ApiResponse<SpecialtyResponse>> {
     return this.http.put<ApiResponse<SpecialtyResponse>>(`${this.adminUrl}/${id}`, request);
+  }
+
+  /** PATCH /admin/specialties/{id}/status */
+  updateStatus(id: number, request: UpdateSpecialtyStatusRequest): Observable<ApiResponse<void>> {
+    return this.http.patch<ApiResponse<void>>(`${this.adminUrl}/${id}/status`, request);
   }
 }

@@ -31,34 +31,43 @@ $clinic-theme: mat.define-light-theme((
 // CSS Custom Properties (Design Tokens)
 // ======================================================
 :root {
-  // Colors
-  --primary-color:   #1565c0;
-  --primary-dark:    #0d47a1;
-  --primary-light:   #42a5f5;
-  --accent-color:    #00897b;
-  --warn-color:      #e53935;
+  // Brand Colors (Premium Healthcare Palette)
+  --primary-color:   #0284c7; // Sky blue 600
+  --primary-dark:    #0369a1; // Sky blue 700
+  --primary-deep:    #0c4a6e; // Sky blue 900
+  --primary-light:   #38bdf8; // Sky blue 400
+  --primary-subtle:  #e0f2fe; // Sky blue 100
+  --accent-color:    #0d9488; // Teal 600
+  --accent-light:    #ccfbf1; // Teal 100
+  --success-color:   #10b981; // Emerald 500
+  --warning-color:   #f59e0b; // Amber 500
+  --warn-color:      #ef4444; // Rose 500
 
   // Text
-  --text-primary:    #1a1a2e;
-  --text-secondary:  #6b7280;
-  --text-disabled:   #9ca3af;
+  --text-primary:    #0f172a; // Slate 900
+  --text-secondary:  #475569; // Slate 600
+  --text-disabled:   #94a3b8; // Slate 400
   --text-on-primary: #ffffff;
 
   // Background
-  --bg-page:         #f5f7fa;
+  --bg-page:         #f8fafc; // Clean slate 50
   --bg-surface:      #ffffff;
-  --bg-subtle:       #f9fafb;
+  --bg-subtle:       #f1f5f9; // Slate 100
+  --bg-gradient:     linear-gradient(135deg, #f0f9ff 0%, #f8fafc 50%, #e0f2fe 100%);
 
-  // Border
-  --border-color:    #e5e7eb;
-  --border-radius:   8px;
-  --border-radius-lg: 12px;
-  --border-radius-xl: 16px;
+  // Border & Radius
+  --border-color:    #e2e8f0; // Slate 200
+  --border-focus:    #38bdf8;
+  --border-radius-sm: 8px;
+  --border-radius:   12px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 22px;
 
-  // Shadow
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  // Modern Multi-layer Shadows
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 14px -1px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 28px -4px rgba(15, 23, 42, 0.09), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+  --shadow-primary: 0 8px 20px -4px rgba(2, 132, 199, 0.35);
 
   // Spacing
   --space-xs: 4px;
@@ -82,7 +91,7 @@ html, body {
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
   color: var(--text-primary);
   background: var(--bg-page);
@@ -95,17 +104,38 @@ body {
 // ======================================================
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Inter', sans-serif;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
 // ======================================================
-// Material Overrides
+// Material Overrides & Enhancements
 // ======================================================
 
 // Form fields
 .mat-mdc-form-field {
-  --mdc-outlined-text-field-container-shape: 8px;
+  --mdc-outlined-text-field-container-shape: 12px;
+  
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: #cbd5e1 !important;
+  }
+
+  &.mat-focused {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--primary-color) !important;
+      border-width: 2px !important;
+    }
+  }
+
+  .mat-mdc-form-field-icon-suffix,
+  .mat-mdc-form-field-icon-prefix {
+    color: #64748b;
+  }
 }
 
 // Buttons
@@ -114,15 +144,29 @@ h1, h2, h3, h4, h5, h6 {
 .mat-mdc-flat-button,
 .mat-mdc-stroked-button {
   font-family: 'Inter', sans-serif !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.2px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  border-radius: 10px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.mat-mdc-flat-button.mat-primary {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.28) !important;
+  
+  &:hover:not([disabled]) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.38) !important;
+  }
 }
 
 // Cards
 .mat-mdc-card {
-  box-shadow: var(--shadow-sm) !important;
-  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: var(--border-radius-lg) !important;
+  background: #ffffff !important;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 // Sidenav
@@ -182,10 +226,54 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
+  background: #cbd5e1;
+  border-radius: 4px;
 
   &:hover {
-    background: #9ca3af;
+    background: #94a3b8;
   }
+}
+
+// ======================================================
+// Modern Badges & Chips
+// ======================================================
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+
+  &.badge-primary {
+    background: #e0f2fe;
+    color: #0369a1;
+  }
+
+  &.badge-success {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  &.badge-warning {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  &.badge-danger {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+}
+
+// Fade in animation
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }

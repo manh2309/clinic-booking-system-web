@@ -3,6 +3,7 @@ export interface SpecialtyResponse {
   id: number;
   name: string;
   description?: string;
+  active?: boolean;
 }
 
 export interface CreateSpecialtyRequest {
@@ -15,6 +16,10 @@ export interface UpdateSpecialtyRequest {
   description?: string;
 }
 
+export interface UpdateSpecialtyStatusRequest {
+  active: boolean;
+}
+
 /** Bác sĩ */
 export interface DoctorResponse {
   id: number;
@@ -23,6 +28,7 @@ export interface DoctorResponse {
   description?: string;
   specialtyId?: number;
   specialtyName?: string;
+  active?: boolean;
 }
 
 export interface CreateDoctorRequest {
@@ -34,6 +40,17 @@ export interface CreateDoctorRequest {
   qualification?: string;
   description?: string;
   specialtyId: number;
+}
+
+export interface UpdateDoctorRequest {
+  fullName: string;
+  qualification?: string;
+  description?: string;
+  specialtyId: number;
+}
+
+export interface UpdateDoctorStatusRequest {
+  active: boolean;
 }
 
 /** Lịch làm việc */
@@ -106,5 +123,11 @@ export interface AdminAccountResponse {
   id: number;
   username: string;
   email: string;
+  roleName: string;
+  isActive?: boolean;
+}
+
+export interface RoleResponse {
+  roleId: number;
   roleName: string;
 }

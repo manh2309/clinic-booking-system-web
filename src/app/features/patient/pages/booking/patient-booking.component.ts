@@ -134,89 +134,112 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
   styles: [`
     .booking-layout {
       display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 20px;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
       align-items: start;
     }
 
-    .doctor-info-card, .slot-card { border-radius: 12px; }
+    .doctor-info-card, .slot-card {
+      border-radius: 20px !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05) !important;
+    }
 
     .doctor-header {
       display: flex;
       gap: 16px;
       align-items: flex-start;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .doctor-avatar-lg {
-      width: 80px;
-      height: 80px;
-      background: #e3f2fd;
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      mat-icon { font-size: 44px; width: 44px; height: 44px; color: #1565c0; }
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+      mat-icon { font-size: 40px; width: 40px; height: 40px; color: #ffffff; }
     }
 
-    .doctor-name { font-size: 18px; font-weight: 700; margin: 0 0 6px; color: #1a1a2e; }
+    .doctor-name { font-size: 19px; font-weight: 800; margin: 0 0 6px; color: #0f172a; letter-spacing: -0.02em; }
 
     .doctor-specialty, .doctor-qual {
-      display: flex; align-items: center; gap: 5px;
-      font-size: 13px; color: #6b7280; margin: 0 0 4px;
-      mat-icon { font-size: 15px; width: 15px; height: 15px; }
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: #64748b; margin: 0 0 4px;
+      mat-icon { font-size: 16px; width: 16px; height: 16px; color: #0284c7; }
     }
 
-    .doctor-desc { font-size: 14px; color: #6b7280; line-height: 1.6; }
+    .doctor-desc { font-size: 13px; color: #475569; line-height: 1.6; }
 
-    .date-picker { width: 100%; margin-bottom: 16px; }
+    .date-picker { width: 100%; margin-bottom: 20px; }
 
-    .slots-title { color: #6b7280; font-size: 14px; }
+    .slots-title { color: #64748b; font-size: 14px; font-weight: 500; }
 
     .slots-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
+      gap: 12px;
+      margin-bottom: 24px;
     }
 
     .slot-btn {
-      border-radius: 8px !important;
+      border-radius: 12px !important;
       font-size: 13px;
-      padding: 0 12px;
-      height: 40px;
+      padding: 0 16px;
+      height: 44px;
       display: flex;
       align-items: center;
-      gap: 6px;
-      mat-icon { font-size: 16px; width: 16px; height: 16px; }
+      gap: 8px;
+      border: 1px solid #cbd5e1 !important;
+      font-weight: 600;
+      color: #334155;
+      transition: all 0.2s;
+      mat-icon { font-size: 18px; width: 18px; height: 18px; color: #64748b; }
+
+      &:hover {
+        border-color: #0284c7 !important;
+        background: #f0f9ff;
+        color: #0284c7;
+      }
 
       &.slot-btn--selected {
-        background: #1565c0 !important;
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
         color: #fff !important;
-        border-color: #1565c0 !important;
+        border-color: #0284c7 !important;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
+        mat-icon { color: #fff; }
       }
     }
 
     .confirm-section {
-      border-top: 1px solid #e5e7eb;
-      padding-top: 16px;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 20px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
     }
 
     .selected-info {
       display: flex; align-items: center; gap: 8px;
-      color: #2e7d32; font-size: 14px; font-weight: 500;
-      mat-icon { color: #2e7d32; }
+      color: #15803d; font-size: 14px; font-weight: 700;
+      background: #f0fdf4;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid #bbf7d0;
+      mat-icon { color: #16a34a; }
     }
 
     .confirm-btn {
       align-self: flex-start;
-      height: 44px;
-      font-size: 15px;
-      font-weight: 600;
+      height: 46px;
+      padding: 0 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
       display: flex;
       align-items: center;
       gap: 8px;

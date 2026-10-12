@@ -6,6 +6,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { NgIf, NgFor } from '@angular/common';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AdminAccountResponse } from '../../../../core/models/domain.model';
@@ -17,14 +18,26 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
   selector: 'app-admin-accounts',
   standalone: true,
   imports: [
-    MatCardModule, MatButtonModule, MatIconModule,
-    MatTableModule, MatChipsModule, MatSlideToggleModule, MatSnackBarModule,
-    NgIf, NgFor,
-    PageHeaderComponent, LoadingComponent, EmptyStateComponent,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTableModule,
+    MatChipsModule,
+    MatSlideToggleModule,
+    MatSnackBarModule,
+    MatTooltipModule,
+    NgIf,
+    NgFor,
+    PageHeaderComponent,
+    LoadingComponent,
+    EmptyStateComponent,
   ],
   template: `
-    <div>
-      <app-page-header title="Quản lý tài khoản" subtitle="Danh sách người dùng trong hệ thống"></app-page-header>
+    <div class="fade-in">
+      <app-page-header
+        title="Quản lý tài khoản người dùng"
+        subtitle="Danh sách người dùng và phân quyền trong hệ thống ClinicCare"
+      ></app-page-header>
 
       <app-loading *ngIf="isLoading" message="Đang tải danh sách tài khoản..."></app-loading>
 
@@ -49,14 +62,17 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
               <td mat-cell *matCellDef="let acc">
                 <div class="user-cell">
                   <div class="user-avatar">{{ acc.username[0].toUpperCase() }}</div>
-                  {{ acc.username }}
+                  <div>
+                    <div class="user-name">{{ acc.username }}</div>
+                    <div class="user-id">ID: {{ acc.id }}</div>
+                  </div>
                 </div>
               </td>
             </ng-container>
 
             <!-- Email -->
             <ng-container matColumnDef="email">
-              <th mat-header-cell *matHeaderCellDef>Email</th>
+              <th mat-header-cell *matHeaderCellDef>Địa chỉ Email</th>
               <td mat-cell *matCellDef="let acc">{{ acc.email }}</td>
             </ng-container>
 
@@ -70,6 +86,25 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
               </td>
             </ng-container>
 
+            <!-- Status / Action Toggle -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Trạng thái</th>
+              <td mat-cell *matCellDef="let acc">
+                <div class="status-action-cell">
+                  <mat-slide-toggle
+                    [checked]="acc.isActive !== false"
+                    (change)="toggleStatus(acc)"
+                    color="primary"
+                    matTooltip="Bật/Tắt hoạt động tài khoản"
+                  >
+                    <span class="status-label" [class.inactive]="acc.isActive === false">
+                      {{ acc.isActive === false ? 'Bị khóa' : 'Hoạt động' }}
+                    </span>
+                  </mat-slide-toggle>
+                </div>
+              </td>
+            </ng-container>
+
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
           </table>
@@ -78,57 +113,104 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
     </div>
   `,
   styles: [`
-    .table-card { border-radius: 12px; }
+    .table-card {
+      border-radius: 20px !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05) !important;
+      overflow: hidden;
+    }
     .table-card mat-card-content { padding: 0 !important; }
 
     .accounts-table { width: 100%; }
 
     .mat-mdc-header-cell {
-      font-weight: 600;
-      color: #374151;
-      background: #f9fafb;
+      font-weight: 700;
+      color: #0f172a;
+      background: #f8fafc;
       font-size: 13px;
+      padding: 16px;
+      border-bottom: 1px solid #e2e8f0;
     }
 
-    .mat-mdc-cell { font-size: 14px; color: #374151; }
+    .mat-mdc-cell {
+      font-size: 14px;
+      color: #334155;
+      padding: 16px;
+      border-bottom: 1px solid #f1f5f9;
+    }
 
     .user-cell {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
     .user-avatar {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: #1565c0; color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 600;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+    }
+
+    .user-name {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .user-id {
+      font-size: 11px;
+      color: #94a3b8;
     }
 
     .role-chip {
-      padding: 3px 10px;
-      border-radius: 10px;
+      padding: 4px 12px;
+      border-radius: 9999px;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
+      display: inline-block;
     }
 
-    .role-patient  { background: #e3f2fd; color: #1565c0; }
-    .role-doctor   { background: #e8f5e9; color: #2e7d32; }
-    .role-admin    { background: #fce4ec; color: #b71c1c; }
-    .role-default  { background: #f5f5f5; color: #616161; }
+    .role-patient  { background: #e0f2fe; color: #0369a1; }
+    .role-doctor   { background: #dcfce7; color: #15803d; }
+    .role-admin    { background: #fee2e2; color: #b91c1c; }
+    .role-default  { background: #f1f5f9; color: #475569; }
+
+    .status-action-cell {
+      display: flex;
+      align-items: center;
+    }
+
+    .status-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #16a34a;
+
+      &.inactive {
+        color: #ef4444;
+      }
+    }
   `],
 })
 export class AdminAccountsComponent implements OnInit {
   accounts: AdminAccountResponse[] = [];
   isLoading = false;
-  displayedColumns = ['id', 'username', 'email', 'role'];
+  displayedColumns = ['id', 'username', 'email', 'role', 'status'];
 
   constructor(
     private adminService: AdminService,
     private snackBar: MatSnackBar
   ) {}
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+  }
 
   load(): void {
     this.isLoading = true;
@@ -137,7 +219,28 @@ export class AdminAccountsComponent implements OnInit {
         this.accounts = r.data ?? [];
         this.isLoading = false;
       },
-      error: () => { this.isLoading = false; },
+      error: () => {
+        this.isLoading = false;
+      },
+    });
+  }
+
+  toggleStatus(acc: AdminAccountResponse): void {
+    const newStatus = acc.isActive === false ? true : false;
+    this.adminService.updateAccountStatus(acc.id, { isActive: newStatus }).subscribe({
+      next: () => {
+        acc.isActive = newStatus;
+        this.snackBar.open(
+          `Đã ${newStatus ? 'kích hoạt' : 'khóa'} tài khoản ${acc.username} thành công!`,
+          'Đóng',
+          { duration: 3000, panelClass: 'success-snackbar' }
+        );
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.snackBar.open(err?.error?.message ?? 'Cập nhật trạng thái thất bại', 'Đóng', {
+          duration: 3000,
+        });
+      },
     });
   }
 
@@ -145,7 +248,7 @@ export class AdminAccountsComponent implements OnInit {
     const map: Record<string, string> = {
       ROLE_PATIENT: 'Bệnh nhân',
       ROLE_DOCTOR:  'Bác sĩ',
-      ROLE_ADMIN:   'Admin',
+      ROLE_ADMIN:   'Quản trị viên',
     };
     return map[roleName] ?? roleName;
   }

@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -24,153 +24,415 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatProgressSpinnerModule, MatChipsModule, MatPaginatorModule,
-    NgIf, NgFor,
-    PageHeaderComponent, LoadingComponent, EmptyStateComponent,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatPaginatorModule,
+    NgIf,
+    NgFor,
+    PageHeaderComponent,
+    LoadingComponent,
+    EmptyStateComponent,
   ],
   template: `
-    <div>
-      <app-page-header title="Tìm bác sĩ" subtitle="Tìm và đặt lịch khám với bác sĩ phù hợp"></app-page-header>
+    <div class="patient-doctors-page fade-in">
+      <app-page-header
+        title="Đội ngũ Bác sĩ Chuyên khoa"
+        subtitle="Tìm kiếm chuyên gia y tế giàu kinh nghiệm và đặt lịch khám nhanh chóng"
+      ></app-page-header>
 
-      <!-- Search Bar -->
-      <mat-card class="search-card">
+      <!-- FILTER & SEARCH CARD -->
+      <mat-card class="search-filter-card">
         <mat-card-content>
-          <form [formGroup]="searchForm" class="search-form">
-            <mat-form-field appearance="outline" class="search-input">
-              <mat-label>Tìm kiếm bác sĩ</mat-label>
-              <input matInput formControlName="keyword" placeholder="Nhập tên bác sĩ..." />
-              <mat-icon matSuffix>search</mat-icon>
-            </mat-form-field>
+          <form [formGroup]="searchForm" class="filter-form">
+            <div class="filter-input-wrap">
+              <mat-form-field appearance="outline" class="keyword-field">
+                <mat-label>Tìm theo tên bác sĩ hoặc học vị</mat-label>
+                <input matInput formControlName="keyword" placeholder="Nhập tên bác sĩ cần tìm..." />
+                <mat-icon matPrefix class="field-icon">search</mat-icon>
+                <button
+                  mat-icon-button
+                  matSuffix
+                  *ngIf="searchForm.get('keyword')?.value"
+                  (click)="searchForm.get('keyword')?.setValue('')"
+                  type="button"
+                >
+                  <mat-icon>close</mat-icon>
+                </button>
+              </mat-form-field>
 
-            <mat-form-field appearance="outline" class="specialty-select">
-              <mat-label>Chuyên khoa</mat-label>
-              <mat-select formControlName="specialtyId">
-                <mat-option [value]="null">Tất cả chuyên khoa</mat-option>
-                <mat-option *ngFor="let s of specialties" [value]="s.id">{{ s.name }}</mat-option>
-              </mat-select>
-            </mat-form-field>
+              <mat-form-field appearance="outline" class="specialty-field">
+                <mat-label>Lọc theo chuyên khoa</mat-label>
+                <mat-select formControlName="specialtyId">
+                  <mat-option [value]="null">Tất cả chuyên khoa</mat-option>
+                  <mat-option *ngFor="let s of specialties" [value]="s.id">{{ s.name }}</mat-option>
+                </mat-select>
+                <mat-icon matPrefix class="field-icon">local_hospital</mat-icon>
+              </mat-form-field>
+            </div>
+
+            <!-- Quick Specialty Chips -->
+            <div class="quick-chips" *ngIf="specialties.length > 0">
+              <span class="chips-label">Chuyên khoa gợi ý:</span>
+              <button
+                type="button"
+                class="chip-btn"
+                [class.active]="searchForm.get('specialtyId')?.value === null"
+                (click)="searchForm.get('specialtyId')?.setValue(null)"
+              >
+                Tất cả
+              </button>
+              <button
+                type="button"
+                *ngFor="let s of specialties.slice(0, 5)"
+                class="chip-btn"
+                [class.active]="searchForm.get('specialtyId')?.value === s.id"
+                (click)="searchForm.get('specialtyId')?.setValue(s.id)"
+              >
+                {{ s.name }}
+              </button>
+            </div>
           </form>
         </mat-card-content>
       </mat-card>
 
-      <!-- Loading -->
-      <app-loading *ngIf="isLoading" message="Đang tải danh sách bác sĩ..."></app-loading>
+      <!-- LOADING STATE -->
+      <app-loading *ngIf="isLoading" message="Đang tìm kiếm bác sĩ..."></app-loading>
 
-      <!-- Doctors Grid -->
-      <div class="doctors-grid" *ngIf="!isLoading">
-        <!-- Empty state -->
+      <!-- RESULTS SECTION -->
+      <div class="results-container" *ngIf="!isLoading">
+        <!-- Results count header -->
+        <div class="results-meta-row" *ngIf="doctors.length > 0">
+          <span class="results-count">
+            Tìm thấy <strong>{{ totalElements }}</strong> bác sĩ phù hợp
+          </span>
+        </div>
+
+        <!-- Empty State -->
         <app-empty-state
           *ngIf="doctors.length === 0"
           icon="person_search"
-          title="Không tìm thấy bác sĩ"
-          message="Thử tìm kiếm với từ khóa khác hoặc chọn chuyên khoa khác"
+          title="Không tìm thấy bác sĩ phù hợp"
+          message="Vui lòng thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc chuyên khoa"
         ></app-empty-state>
 
-        <!-- Doctor cards -->
-        <mat-card class="doctor-card" *ngFor="let doctor of doctors">
-          <mat-card-content>
-            <div class="doctor-avatar">
-              <mat-icon>person</mat-icon>
-            </div>
-            <div class="doctor-info">
-              <h3 class="doctor-name">{{ doctor.fullName }}</h3>
-              <div class="doctor-specialty" *ngIf="doctor.specialtyName">
-                <mat-icon>local_hospital</mat-icon>
-                {{ doctor.specialtyName }}
+        <!-- DOCTORS GRID -->
+        <div class="doctors-grid" *ngIf="doctors.length > 0">
+          <div class="doctor-card" *ngFor="let doctor of doctors">
+            <!-- Top Card Header -->
+            <div class="card-top">
+              <div class="doctor-avatar-wrap">
+                <div class="avatar-ring">
+                  <div class="avatar-circle">
+                    <span>{{ getInitials(doctor.fullName) }}</span>
+                  </div>
+                </div>
               </div>
-              <div class="doctor-qualification" *ngIf="doctor.qualification">
-                <mat-icon>school</mat-icon>
-                {{ doctor.qualification }}
-              </div>
-              <p class="doctor-desc" *ngIf="doctor.description">{{ doctor.description }}</p>
-            </div>
-          </mat-card-content>
-          <mat-card-actions>
-            <button mat-flat-button color="primary" (click)="bookDoctor(doctor)">
-              <mat-icon>calendar_month</mat-icon>
-              Đặt lịch khám
-            </button>
-          </mat-card-actions>
-        </mat-card>
-      </div>
 
-      <!-- Pagination -->
-      <mat-paginator
-        *ngIf="totalElements > 0"
-        [length]="totalElements"
-        [pageSize]="pageSize"
-        [pageIndex]="currentPage"
-        [pageSizeOptions]="[10, 20, 50]"
-        (page)="onPageChange($event)"
-        showFirstLastButtons
-      ></mat-paginator>
+              <div class="doctor-primary-meta">
+                <div class="specialty-pill" *ngIf="doctor.specialtyName">
+                  <mat-icon>medical_services</mat-icon>
+                  <span>{{ doctor.specialtyName }}</span>
+                </div>
+                <h3 class="doctor-title">{{ doctor.fullName }}</h3>
+                <p class="doctor-qual" *ngIf="doctor.qualification">
+                  <mat-icon>school</mat-icon>
+                  <span>{{ doctor.qualification }}</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Body Description -->
+            <div class="card-body">
+              <p class="doctor-bio">
+                {{ doctor.description || 'Bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm phục vụ bệnh nhân tại hệ thống ClinicCare.' }}
+              </p>
+
+              <div class="doctor-metrics">
+                <div class="metric-pill">
+                  <mat-icon class="star">star</mat-icon>
+                  <span class="rating">5.0</span>
+                  <span class="sub">(120+ lượt khám)</span>
+                </div>
+                <div class="metric-pill verified">
+                  <mat-icon>verified</mat-icon>
+                  <span>Đã kiểm định</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer Action -->
+            <div class="card-footer">
+              <button mat-flat-button color="primary" class="btn-book" (click)="bookDoctor(doctor)">
+                <mat-icon>calendar_month</mat-icon>
+                <span>Đặt lịch khám ngay</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="paginator-wrap" *ngIf="totalElements > pageSize">
+          <mat-paginator
+            [length]="totalElements"
+            [pageSize]="pageSize"
+            [pageIndex]="currentPage"
+            [pageSizeOptions]="[12, 24, 48]"
+            (page)="onPageChange($event)"
+            showFirstLastButtons
+          ></mat-paginator>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
-    .search-card {
-      margin-bottom: 20px;
-      border-radius: 12px;
-    }
-    .search-form {
+    .patient-doctors-page {
       display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 24px;
     }
-    .search-input  { flex: 1; min-width: 220px; }
-    .specialty-select { width: 220px; }
 
+    /* FILTER CARD */
+    .search-filter-card {
+      border-radius: 20px !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05) !important;
+      background: #ffffff !important;
+    }
+
+    .filter-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 8px 0;
+    }
+
+    .filter-input-wrap {
+      display: grid;
+      grid-template-columns: 2fr 1.2fr;
+      gap: 20px;
+    }
+
+    .field-icon {
+      color: #94a3b8;
+      margin-right: 8px;
+    }
+
+    /* QUICK CHIPS */
+    .quick-chips {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+
+    .chips-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .chip-btn {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      border-radius: 9999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+      }
+
+      &.active {
+        background: #e0f2fe;
+        color: #0284c7;
+        border-color: #38bdf8;
+      }
+    }
+
+    /* RESULTS META */
+    .results-meta-row {
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    /* DOCTORS GRID */
     .doctors-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
     }
 
     .doctor-card {
-      border-radius: 12px;
-      transition: box-shadow 0.2s;
-      &:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; }
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.04);
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 28px -4px rgba(2, 132, 199, 0.14);
+        border-color: #7dd3fc;
+      }
     }
 
-    .doctor-avatar {
+    .card-top {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .avatar-ring {
+      padding: 3px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);
+    }
+
+    .avatar-circle {
       width: 64px;
       height: 64px;
-      background: #e3f2fd;
       border-radius: 50%;
+      background: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 12px;
-      mat-icon { font-size: 36px; width: 36px; height: 36px; color: #1565c0; }
+      font-size: 24px;
+      font-weight: 800;
+      color: #0284c7;
+      border: 2px solid #ffffff;
     }
 
-    .doctor-name {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1a1a2e;
-      margin: 0 0 8px;
+    .doctor-primary-meta {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .doctor-specialty, .doctor-qualification {
+    .specialty-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #e0f2fe;
+      color: #0284c7;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      width: fit-content;
+
+      mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    }
+
+    .doctor-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 2px 0 0;
+      letter-spacing: -0.02em;
+    }
+
+    .doctor-qual {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: #6b7280;
-      margin-bottom: 4px;
-      mat-icon { font-size: 16px; width: 16px; height: 16px; }
+      gap: 4px;
+      font-size: 12px;
+      color: #64748b;
+      margin: 0;
+
+      mat-icon { font-size: 15px; width: 15px; height: 15px; color: #0d9488; }
     }
 
-    .doctor-desc {
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .doctor-bio {
       font-size: 13px;
-      color: #9ca3af;
-      margin: 8px 0 0;
+      color: #475569;
+      line-height: 1.6;
+      margin: 0;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+    }
+
+    .doctor-metrics {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .metric-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #fefce8;
+      color: #854d0e;
+      border: 1px solid #fef08a;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+
+      .star { color: #eab308; font-size: 15px; width: 15px; height: 15px; }
+      .sub { font-weight: 500; font-size: 11px; color: #a16207; }
+
+      &.verified {
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+        color: #065f46;
+
+        mat-icon { color: #10b981; font-size: 15px; width: 15px; height: 15px; }
+      }
+    }
+
+    .card-footer {
+      margin-top: auto;
+      padding-top: 8px;
+    }
+
+    .btn-book {
+      width: 100%;
+      height: 44px;
+      border-radius: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .paginator-wrap {
+      margin-top: 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    @media (max-width: 768px) {
+      .filter-input-wrap { grid-template-columns: 1fr; }
+      .doctors-grid { grid-template-columns: 1fr; }
     }
   `],
 })
@@ -188,7 +450,8 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private doctorService: DoctorService,
     private specialtyService: SpecialtyService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -197,12 +460,21 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
       specialtyId: [null],
     });
 
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+      if (params['keyword']) {
+        this.searchForm.patchValue({ keyword: params['keyword'] }, { emitEvent: false });
+      }
+      if (params['specialtyId']) {
+        this.searchForm.patchValue({ specialtyId: +params['specialtyId'] }, { emitEvent: false });
+      }
+    });
+
     this.loadSpecialties();
     this.loadDoctors();
 
-    // Auto search khi thay đổi form
+    // Auto search khi gõ
     this.searchForm.valueChanges
-      .pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
+      .pipe(debounceTime(350), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => {
         this.currentPage = 0;
         this.loadDoctors();
@@ -216,27 +488,36 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
 
   loadSpecialties(): void {
     this.specialtyService.getAll().subscribe({
-      next: (res) => { this.specialties = res.data ?? []; },
+      next: (res) => {
+        this.specialties = res.data ?? [];
+      },
       error: () => {},
     });
   }
 
   loadDoctors(): void {
     this.isLoading = true;
-    const { keyword, specialtyId } = this.searchForm.value as { keyword: string; specialtyId: number | null };
-    this.doctorService.search({
-      keyword: keyword || undefined,
-      specialtyId: specialtyId || undefined,
-      page: this.currentPage,
-      size: this.pageSize,
-    }).subscribe({
-      next: (res) => {
-        this.doctors = res.data?.content ?? [];
-        this.totalElements = res.data?.totalElements ?? 0;
-        this.isLoading = false;
-      },
-      error: () => { this.isLoading = false; },
-    });
+    const { keyword, specialtyId } = this.searchForm.value as {
+      keyword: string;
+      specialtyId: number | null;
+    };
+    this.doctorService
+      .search({
+        keyword: keyword?.trim() || undefined,
+        specialtyId: specialtyId || undefined,
+        page: this.currentPage,
+        size: this.pageSize,
+      })
+      .subscribe({
+        next: (res) => {
+          this.doctors = res.data?.content ?? [];
+          this.totalElements = res.data?.totalElements ?? 0;
+          this.isLoading = false;
+        },
+        error: () => {
+          this.isLoading = false;
+        },
+      });
   }
 
   onPageChange(event: PageEvent): void {
@@ -247,5 +528,16 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
 
   bookDoctor(doctor: DoctorResponse): void {
     this.router.navigate(['/patient/booking', doctor.id]);
+  }
+
+  getInitials(name?: string): string {
+    if (!name) return 'BS';
+    return name
+      .trim()
+      .split(/\s+/)
+      .map((p) => p[0])
+      .slice(-2)
+      .join('')
+      .toUpperCase();
   }
 }
