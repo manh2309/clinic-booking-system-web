@@ -9,7 +9,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { DoctorService } from '../../../../core/services/doctor.service';
 import { AppointmentService } from '../../../../core/services/appointment.service';
@@ -22,6 +22,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    FormsModule,
     MatCardModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule,
     MatDatepickerModule, MatNativeDateModule,
@@ -38,7 +39,20 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
       <app-loading *ngIf="isLoadingDoctor" message="Đang tải thông tin bác sĩ..."></app-loading>
 
-      <div class="booking-layout" *ngIf="!isLoadingDoctor && doctor">
+      <!-- Doctor Error State -->
+      <div class="error-banner" *ngIf="!isLoadingDoctor && hasDoctorError">
+        <mat-icon class="err-icon">error_outline</mat-icon>
+        <div class="err-text">
+          <strong>Không thể tải thông tin bác sĩ</strong>
+          <p>{{ doctorErrorMessage }}</p>
+        </div>
+        <button mat-stroked-button color="primary" routerLink="/patient/doctors">
+          <mat-icon>arrow_back</mat-icon>
+          Danh sách bác sĩ
+        </button>
+      </div>
+
+      <div class="booking-layout" *ngIf="!isLoadingDoctor && !hasDoctorError && doctor">
         <!-- Doctor Info Card -->
         <mat-card class="doctor-info-card">
           <mat-card-content>
@@ -245,6 +259,21 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
       gap: 8px;
     }
 
+    .error-banner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 24px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 14px;
+      color: #991b1b;
+      margin-bottom: 24px;
+
+      .err-icon { color: #ef4444; font-size: 24px; width: 24px; height: 24px; }
+      .err-text { flex: 1; strong { display: block; margin-bottom: 2px; } p { margin: 0; font-size: 13px; color: #b91c1c; } }
+    }
+
     @media (max-width: 768px) {
       .booking-layout { grid-template-columns: 1fr; }
     }
@@ -257,6 +286,8 @@ export class PatientBookingComponent implements OnInit {
   selectedDate: Date | null = null;
   minDate = new Date();
   isLoadingDoctor = false;
+  hasDoctorError = false;
+  doctorErrorMessage = '';
   isLoadingSlots = false;
   isBooking = false;
 
@@ -275,17 +306,29 @@ export class PatientBookingComponent implements OnInit {
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
-    if (id) this.loadDoctor(id);
+    if (id && !isNaN(id)) {
+      this.loadDoctor(id);
+    } else {
+      this.hasDoctorError = true;
+      this.doctorErrorMessage = 'Mã bác sĩ không hợp lệ.';
+    }
   }
 
   loadDoctor(id: number): void {
     this.isLoadingDoctor = true;
+    this.hasDoctorError = false;
+    this.doctorErrorMessage = '';
+
     this.doctorService.getById(id).subscribe({
       next: (res) => {
         this.doctor = res.data;
         this.isLoadingDoctor = false;
       },
-      error: () => { this.isLoadingDoctor = false; },
+      error: (err: { error?: { message?: string } }) => {
+        this.isLoadingDoctor = false;
+        this.hasDoctorError = true;
+        this.doctorErrorMessage = err?.error?.message ?? 'Không tìm thấy thông tin bác sĩ hoặc bác sĩ không tồn tại.';
+      },
     });
   }
 
@@ -299,7 +342,11 @@ export class PatientBookingComponent implements OnInit {
         this.slots = res.data ?? [];
         this.isLoadingSlots = false;
       },
-      error: () => { this.isLoadingSlots = false; },
+      error: (err: { error?: { message?: string } }) => {
+        this.isLoadingSlots = false;
+        this.slots = [];
+        this.snackBar.open(err?.error?.message ?? 'Không thể tải danh sách khung giờ.', 'Đóng', { duration: 4000 });
+      },
     });
   }
 
@@ -313,19 +360,22 @@ export class PatientBookingComponent implements OnInit {
     this.appointmentService.book({ slotId: this.selectedSlot.id }).subscribe({
       next: () => {
         this.isBooking = false;
-        this.snackBar.open('Đặt lịch thành công!', 'Đóng', {
-          duration: 3000,
+        this.snackBar.open('Đặt lịch khám thành công!', 'Đóng', {
+          duration: 3500,
           panelClass: 'success-snackbar',
         });
         this.router.navigate(['/patient/appointments']);
       },
       error: (err: { error?: { message?: string } }) => {
         this.isBooking = false;
+        const msg = err?.error?.message ?? 'Đặt lịch thất bại. Khung giờ này có thể vừa bị người khác đặt, vui lòng chọn khung giờ khác.';
         this.snackBar.open(
-          err?.error?.message ?? 'Đặt lịch thất bại. Vui lòng thử lại.',
+          msg,
           'Đóng',
-          { duration: 4000, panelClass: 'error-snackbar' }
+          { duration: 5000, panelClass: 'error-snackbar' }
         );
+        // Cập nhật lại danh sách slot để xóa bỏ slot đã bị chiếm
+        this.onDateChange();
       },
     });
   }

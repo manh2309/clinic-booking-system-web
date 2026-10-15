@@ -76,8 +76,21 @@ import { AuthService } from '../../../../core/services/auth.service';
 
       <app-loading *ngIf="isLoading" message="Đang tải dữ liệu hồ sơ y tế..."></app-loading>
 
+      <!-- ERROR BANNER -->
+      <div class="error-banner" *ngIf="!isLoading && hasError">
+        <mat-icon class="err-icon">error_outline</mat-icon>
+        <div class="err-text">
+          <strong>Không thể tải hồ sơ cá nhân</strong>
+          <p>{{ errorMessage }}</p>
+        </div>
+        <button mat-flat-button color="primary" (click)="loadProfile()">
+          <mat-icon>refresh</mat-icon>
+          <span>Thử lại</span>
+        </button>
+      </div>
+
       <!-- MAIN TWO-COLUMN LAYOUT -->
-      <div class="profile-layout" *ngIf="!isLoading">
+      <div class="profile-layout" *ngIf="!isLoading && !hasError">
         <!-- LEFT COLUMN: Patient Info & Quick Links -->
         <aside class="profile-sidebar">
           <!-- Avatar Identity Card -->
@@ -842,6 +855,32 @@ import { AuthService } from '../../../../core/services/auth.service';
         flex-direction: column;
         button { width: 100%; }
       }
+      .error-banner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    .error-banner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      color: #991b1b;
+      margin-bottom: 24px;
+
+      .err-icon { color: #ef4444; font-size: 24px; width: 24px; height: 24px; }
+      .err-text { flex: 1; strong { font-size: 14px; } p { margin: 2px 0 0; font-size: 13px; color: #b91c1c; } }
+      button {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 38px;
+        mat-icon { font-size: 18px; width: 18px; height: 18px; }
+      }
     }
   `],
 })
@@ -850,6 +889,8 @@ export class PatientProfileComponent implements OnInit {
   profile: PatientProfileResponse | null = null;
   isLoading = false;
   isSaving = false;
+  hasError = false;
+  errorMessage = '';
 
   constructor(
     private fb: FormBuilder,
@@ -878,6 +919,8 @@ export class PatientProfileComponent implements OnInit {
 
   loadProfile(): void {
     this.isLoading = true;
+    this.hasError = false;
+    this.errorMessage = '';
     this.profileService.getMyProfile().subscribe({
       next: (res) => {
         this.profile = res.data;
@@ -886,8 +929,10 @@ export class PatientProfileComponent implements OnInit {
         }
         this.isLoading = false;
       },
-      error: () => {
+      error: (err: { error?: { message?: string } }) => {
         this.isLoading = false;
+        this.hasError = true;
+        this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải hồ sơ cá nhân.';
       },
     });
   }

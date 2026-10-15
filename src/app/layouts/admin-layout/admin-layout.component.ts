@@ -61,13 +61,6 @@ interface SidenavItem {
             <mat-icon class="item-icon">{{ item.icon }}</mat-icon>
             <span class="item-label">{{ item.label }}</span>
           </a>
-
-          <div class="nav-section-label portal-label">CHUYỂN GIAO DIỆN</div>
-          <a routerLink="/patient/home" class="sidebar-item switch-link" target="_blank" title="Mở cổng bệnh nhân">
-            <mat-icon class="item-icon">visibility</mat-icon>
-            <span class="item-label">Xem Cổng Bệnh nhân</span>
-            <mat-icon class="external-icon">open_in_new</mat-icon>
-          </a>
         </nav>
 
         <!-- User Footer Box -->
@@ -98,16 +91,10 @@ interface SidenavItem {
         <!-- TOP HEADER -->
         <header class="main-header">
           <div class="header-left">
-            <span class="header-breadcrumb">Hệ thống Quản trị Bệnh viện & Đặt lịch khám</span>
+            <span class="header-breadcrumb">Hệ thống quản trị phòng khám</span>
           </div>
 
           <div class="header-actions">
-            <!-- Button link sang cổng Patient -->
-            <button mat-stroked-button routerLink="/patient/home" class="btn-patient-view">
-              <mat-icon>storefront</mat-icon>
-              <span>Xem Cổng Bệnh nhân</span>
-            </button>
-
             <!-- User Menu -->
             <button
               type="button"
@@ -124,13 +111,9 @@ interface SidenavItem {
               <div class="dropdown-header" *ngIf="currentUser">
                 <p class="dropdown-user">{{ currentUser.fullName || currentUser.username }}</p>
                 <p class="dropdown-email">{{ currentUser.email }}</p>
-                <span class="dropdown-badge">Quyền: Quản trị viên (Super Admin)</span>
+                <span class="dropdown-badge">Quản trị viên</span>
               </div>
               <mat-divider></mat-divider>
-              <button mat-menu-item routerLink="/patient/home">
-                <mat-icon color="primary">home</mat-icon>
-                <span>Vào Cổng Bệnh nhân</span>
-              </button>
               <button mat-menu-item routerLink="/admin/accounts">
                 <mat-icon color="primary">manage_accounts</mat-icon>
                 <span>Quản lý tài khoản</span>
@@ -170,29 +153,29 @@ interface SidenavItem {
       left: 0;
       height: 100vh;
       z-index: 100;
-      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+      box-shadow: 2px 0 12px rgba(15, 23, 42, 0.08);
+      border-right: 1px solid #1e293b;
     }
 
     .sidebar-brand {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 24px 20px;
+      padding: 22px 20px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .brand-icon {
       width: 40px;
       height: 40px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
 
-      mat-icon { font-size: 24px; width: 24px; height: 24px; }
+      mat-icon { font-size: 22px; width: 22px; height: 22px; }
     }
 
     .brand-meta {
@@ -202,7 +185,7 @@ interface SidenavItem {
 
     .brand-title {
       color: #ffffff;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 800;
       letter-spacing: -0.02em;
       line-height: 1.2;
@@ -210,15 +193,16 @@ interface SidenavItem {
 
     .brand-badge {
       display: inline-block;
-      color: #f87171;
+      color: #38bdf8;
       font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      margin-top: 2px;
     }
 
     .sidebar-nav {
       flex: 1;
-      padding: 18px 12px;
+      padding: 16px 12px;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -226,73 +210,53 @@ interface SidenavItem {
     }
 
     .nav-section-label {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
       color: #64748b;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       padding: 12px 14px 6px;
-
-      &.portal-label {
-        margin-top: 18px;
-      }
     }
 
     .sidebar-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px;
-      border-radius: 12px;
+      padding: 11px 16px;
+      border-radius: 10px;
       color: #94a3b8;
       text-decoration: none;
       font-size: 14px;
-      font-weight: 600;
-      transition: all 0.2s;
+      font-weight: 500;
+      transition: all 0.15s ease;
 
       .item-icon {
         font-size: 20px;
         width: 20px;
         height: 20px;
         color: #64748b;
-        transition: color 0.2s;
+        transition: color 0.15s;
       }
 
       &:hover {
         background: rgba(255, 255, 255, 0.06);
         color: #ffffff;
-        .item-icon { color: #f87171; }
+        .item-icon { color: #38bdf8; }
       }
 
       &.sidebar-item--active {
-        background: linear-gradient(90deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%);
+        background: rgba(2, 132, 199, 0.15);
         color: #ffffff;
-        border-left: 3px solid #ef4444;
+        border-left: 3px solid #0284c7;
+        font-weight: 600;
 
-        .item-icon { color: #ef4444; }
-      }
-
-      &.switch-link {
-        color: #38bdf8;
         .item-icon { color: #38bdf8; }
-        .external-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
-          margin-left: auto;
-          color: #64748b;
-        }
-
-        &:hover {
-          background: rgba(56, 189, 248, 0.1);
-          color: #7dd3fc;
-        }
       }
     }
 
     .sidebar-footer {
-      padding: 16px 18px;
+      padding: 14px 18px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.15);
       display: flex;
       align-items: center;
       gap: 10px;
@@ -307,16 +271,16 @@ interface SidenavItem {
     }
 
     .user-avatar-admin {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+      background: #0284c7;
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
-      font-weight: 800;
+      font-size: 12px;
+      font-weight: 700;
       flex-shrink: 0;
     }
 
@@ -329,16 +293,16 @@ interface SidenavItem {
     .user-name {
       color: #ffffff;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .user-role {
-      color: #f87171;
+      color: #94a3b8;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
     }
 
     .logout-icon-btn {
@@ -356,7 +320,7 @@ interface SidenavItem {
     }
 
     .main-header {
-      height: 70px;
+      height: 64px;
       background: #ffffff;
       border-bottom: 1px solid #e2e8f0;
       display: flex;
@@ -366,34 +330,18 @@ interface SidenavItem {
       position: sticky;
       top: 0;
       z-index: 50;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     }
 
     .header-breadcrumb {
       font-size: 14px;
       font-weight: 600;
-      color: #64748b;
+      color: #334155;
     }
 
     .header-actions {
       display: flex;
       align-items: center;
       gap: 16px;
-    }
-
-    .btn-patient-view {
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #0284c7;
-      border-color: #bae6fd;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-
-      &:hover {
-        background: #f0f9ff;
-      }
     }
 
     .admin-header-chip {
@@ -415,21 +363,21 @@ interface SidenavItem {
     }
 
     .chip-avatar {
-      width: 32px;
-      height: 32px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
-      background: #ef4444;
+      background: #0284c7;
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 12px;
-      font-weight: 800;
+      font-weight: 700;
     }
 
     .chip-name {
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       color: #0f172a;
     }
 
@@ -460,16 +408,16 @@ interface SidenavItem {
     .dropdown-badge {
       display: inline-block;
       font-size: 11px;
-      font-weight: 700;
-      color: #b91c1c;
-      background: #fee2e2;
+      font-weight: 600;
+      color: #0369a1;
+      background: #e0f2fe;
       padding: 2px 8px;
       border-radius: 6px;
     }
 
     .main-content {
       flex: 1;
-      padding: 32px;
+      padding: 28px 32px;
       max-width: 1400px;
       width: 100%;
       box-sizing: border-box;
@@ -487,11 +435,11 @@ export class AdminLayoutComponent implements OnInit {
   currentUser: User | null = null;
 
   readonly navItems: SidenavItem[] = [
-    { label: 'Tổng quan Dashboard',  route: '/admin/dashboard',    icon: 'dashboard' },
-    { label: 'Quản lý Tài khoản',    route: '/admin/accounts',     icon: 'manage_accounts' },
-    { label: 'Quản lý Bác sĩ',       route: '/admin/doctors',      icon: 'medical_services' },
-    { label: 'Quản lý Chuyên khoa',  route: '/admin/specialties',  icon: 'local_hospital' },
-    { label: 'Quản lý Lịch hẹn',     route: '/admin/appointments', icon: 'event_note' },
+    { label: 'Tổng quan',    route: '/admin/dashboard',    icon: 'dashboard' },
+    { label: 'Tài khoản',    route: '/admin/accounts',     icon: 'manage_accounts' },
+    { label: 'Bác sĩ',       route: '/admin/doctors',      icon: 'medical_services' },
+    { label: 'Chuyên khoa',  route: '/admin/specialties',  icon: 'local_hospital' },
+    { label: 'Lịch hẹn',     route: '/admin/appointments', icon: 'event_note' },
   ];
 
   constructor(private authService: AuthService) {}

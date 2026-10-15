@@ -45,13 +45,13 @@ interface SidenavItem {
           </div>
           <div class="brand-meta">
             <span class="brand-title">ClinicCare</span>
-            <span class="brand-badge">Bàn làm việc Bác sĩ</span>
+            <span class="brand-badge">Bác sĩ phụ trách</span>
           </div>
         </div>
 
         <!-- Navigation Menu -->
         <nav class="sidebar-nav">
-          <div class="nav-section-label">LỊCH TRÌNH KHÁM</div>
+          <div class="nav-section-label">CHỨC NĂNG BÁC SĨ</div>
           <a
             *ngFor="let item of navItems"
             [routerLink]="item.route"
@@ -60,13 +60,6 @@ interface SidenavItem {
           >
             <mat-icon class="item-icon">{{ item.icon }}</mat-icon>
             <span class="item-label">{{ item.label }}</span>
-          </a>
-
-          <div class="nav-section-label portal-label">CỔNG DỊCH VỤ</div>
-          <a routerLink="/patient/home" class="sidebar-item switch-link" target="_blank" title="Mở cổng bệnh nhân">
-            <mat-icon class="item-icon">visibility</mat-icon>
-            <span class="item-label">Xem Cổng Bệnh nhân</span>
-            <mat-icon class="external-icon">open_in_new</mat-icon>
           </a>
         </nav>
 
@@ -78,7 +71,7 @@ interface SidenavItem {
             </div>
             <div class="user-meta">
               <span class="user-name">{{ currentUser.fullName || currentUser.username }}</span>
-              <span class="user-role">Bác sĩ chuyên khoa</span>
+              <span class="user-role">Bác sĩ</span>
             </div>
           </div>
           <button
@@ -98,16 +91,10 @@ interface SidenavItem {
         <!-- TOP HEADER -->
         <header class="main-header">
           <div class="header-left">
-            <span class="header-badge">Hệ thống Tiếp đón & Quản lý Ca khám</span>
+            <span class="header-breadcrumb">Bàn làm việc bác sĩ</span>
           </div>
 
           <div class="header-actions">
-            <!-- Button link sang cổng Patient -->
-            <button mat-stroked-button routerLink="/patient/home" class="btn-patient-view">
-              <mat-icon>storefront</mat-icon>
-              <span>Xem Cổng Bệnh nhân</span>
-            </button>
-
             <!-- User Chip Button -->
             <button
               type="button"
@@ -124,16 +111,16 @@ interface SidenavItem {
               <div class="dropdown-header" *ngIf="currentUser">
                 <p class="dropdown-user">{{ currentUser.fullName || currentUser.username }}</p>
                 <p class="dropdown-email">{{ currentUser.email }}</p>
-                <span class="dropdown-badge">Bác sĩ khám bệnh</span>
+                <span class="dropdown-badge">Bác sĩ</span>
               </div>
               <mat-divider></mat-divider>
-              <button mat-menu-item routerLink="/doctor/profile">
-                <mat-icon color="primary">person</mat-icon>
-                <span>Hồ sơ chuyên môn</span>
-              </button>
               <button mat-menu-item routerLink="/doctor/schedule">
                 <mat-icon color="primary">calendar_month</mat-icon>
-                <span>Đăng ký ca khám</span>
+                <span>Lịch làm việc</span>
+              </button>
+              <button mat-menu-item routerLink="/doctor/profile">
+                <mat-icon color="primary">badge</mat-icon>
+                <span>Hồ sơ chuyên môn</span>
               </button>
               <mat-divider></mat-divider>
               <button mat-menu-item (click)="logout()">
@@ -162,7 +149,7 @@ interface SidenavItem {
     .sidebar {
       width: 260px;
       flex-shrink: 0;
-      background: #042f2e; /* Deep Teal / Emerald */
+      background: #0f172a; /* Slate 900 */
       display: flex;
       flex-direction: column;
       position: fixed;
@@ -170,29 +157,29 @@ interface SidenavItem {
       left: 0;
       height: 100vh;
       z-index: 100;
-      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+      box-shadow: 2px 0 12px rgba(15, 23, 42, 0.08);
+      border-right: 1px solid #1e293b;
     }
 
     .sidebar-brand {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 24px 20px;
+      padding: 22px 20px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .brand-icon {
       width: 40px;
       height: 40px;
-      border-radius: 12px;
+      border-radius: 10px;
       background: linear-gradient(135deg, #0d9488 0%, #059669 100%);
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
 
-      mat-icon { font-size: 24px; width: 24px; height: 24px; }
+      mat-icon { font-size: 22px; width: 22px; height: 22px; }
     }
 
     .brand-meta {
@@ -202,7 +189,7 @@ interface SidenavItem {
 
     .brand-title {
       color: #ffffff;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 800;
       letter-spacing: -0.02em;
       line-height: 1.2;
@@ -212,13 +199,14 @@ interface SidenavItem {
       display: inline-block;
       color: #5eead4;
       font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      margin-top: 2px;
     }
 
     .sidebar-nav {
       flex: 1;
-      padding: 18px 12px;
+      padding: 16px 12px;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -226,72 +214,53 @@ interface SidenavItem {
     }
 
     .nav-section-label {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
-      color: #2dd4bf;
-      letter-spacing: 0.08em;
+      color: #64748b;
+      letter-spacing: 0.06em;
       padding: 12px 14px 6px;
-
-      &.portal-label {
-        margin-top: 18px;
-        color: #94a3b8;
-      }
     }
 
     .sidebar-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px;
-      border-radius: 12px;
-      color: #99f6e4;
+      padding: 11px 16px;
+      border-radius: 10px;
+      color: #94a3b8;
       text-decoration: none;
       font-size: 14px;
-      font-weight: 600;
-      transition: all 0.2s;
+      font-weight: 500;
+      transition: all 0.15s ease;
 
       .item-icon {
         font-size: 20px;
         width: 20px;
         height: 20px;
-        color: #5eead4;
-        transition: color 0.2s;
+        color: #64748b;
+        transition: color 0.15s;
       }
 
       &:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.06);
         color: #ffffff;
+        .item-icon { color: #5eead4; }
       }
 
       &.sidebar-item--active {
-        background: linear-gradient(90deg, rgba(45, 212, 191, 0.2) 0%, rgba(45, 212, 191, 0.05) 100%);
+        background: rgba(13, 148, 136, 0.15);
         color: #ffffff;
-        border-left: 3px solid #2dd4bf;
+        border-left: 3px solid #0d9488;
+        font-weight: 600;
 
-        .item-icon { color: #2dd4bf; }
-      }
-
-      &.switch-link {
-        color: #38bdf8;
-        .item-icon { color: #38bdf8; }
-        .external-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
-          margin-left: auto;
-          color: #5eead4;
-        }
-
-        &:hover {
-          background: rgba(56, 189, 248, 0.12);
-        }
+        .item-icon { color: #5eead4; }
       }
     }
 
     .sidebar-footer {
-      padding: 16px 18px;
+      padding: 14px 18px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.15);
       display: flex;
       align-items: center;
       gap: 10px;
@@ -306,16 +275,16 @@ interface SidenavItem {
     }
 
     .user-avatar-doc {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #0d9488 0%, #059669 100%);
+      background: #0d9488;
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
-      font-weight: 800;
+      font-size: 12px;
+      font-weight: 700;
       flex-shrink: 0;
     }
 
@@ -328,20 +297,20 @@ interface SidenavItem {
     .user-name {
       color: #ffffff;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .user-role {
-      color: #2dd4bf;
+      color: #94a3b8;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
     }
 
     .logout-icon-btn {
-      color: #99f6e4;
+      color: #94a3b8;
       &:hover { color: #ef4444; }
     }
 
@@ -355,7 +324,7 @@ interface SidenavItem {
     }
 
     .main-header {
-      height: 70px;
+      height: 64px;
       background: #ffffff;
       border-bottom: 1px solid #e2e8f0;
       display: flex;
@@ -365,38 +334,18 @@ interface SidenavItem {
       position: sticky;
       top: 0;
       z-index: 50;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     }
 
-    .header-badge {
+    .header-breadcrumb {
       font-size: 14px;
       font-weight: 600;
       color: #0f766e;
-      background: #f0fdfa;
-      border: 1px solid #ccfbf1;
-      padding: 6px 14px;
-      border-radius: 9999px;
     }
 
     .header-actions {
       display: flex;
       align-items: center;
       gap: 16px;
-    }
-
-    .btn-patient-view {
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #0284c7;
-      border-color: #bae6fd;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-
-      &:hover {
-        background: #f0f9ff;
-      }
     }
 
     .doc-header-chip {
@@ -418,8 +367,8 @@ interface SidenavItem {
     }
 
     .chip-avatar {
-      width: 32px;
-      height: 32px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       background: #0d9488;
       color: #ffffff;
@@ -427,12 +376,12 @@ interface SidenavItem {
       align-items: center;
       justify-content: center;
       font-size: 12px;
-      font-weight: 800;
+      font-weight: 700;
     }
 
     .chip-name {
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       color: #0f172a;
     }
 
@@ -463,7 +412,7 @@ interface SidenavItem {
     .dropdown-badge {
       display: inline-block;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
       color: #0f766e;
       background: #ccfbf1;
       padding: 2px 8px;
@@ -472,7 +421,7 @@ interface SidenavItem {
 
     .main-content {
       flex: 1;
-      padding: 32px;
+      padding: 28px 32px;
       max-width: 1400px;
       width: 100%;
       box-sizing: border-box;
@@ -490,10 +439,10 @@ export class DoctorLayoutComponent implements OnInit {
   currentUser: User | null = null;
 
   readonly navItems: SidenavItem[] = [
-    { label: 'Tổng quan ca khám',    route: '/doctor/dashboard',    icon: 'dashboard' },
-    { label: 'Đăng ký Lịch làm việc', route: '/doctor/schedule',     icon: 'calendar_month' },
-    { label: 'Danh sách Lịch hẹn',   route: '/doctor/appointments', icon: 'pending_actions' },
-    { label: 'Hồ sơ chuyên môn',    route: '/doctor/profile',      icon: 'badge' },
+    { label: 'Tổng quan',     route: '/doctor/dashboard',    icon: 'dashboard' },
+    { label: 'Lịch làm việc', route: '/doctor/schedule',     icon: 'calendar_month' },
+    { label: 'Lịch hẹn',      route: '/doctor/appointments', icon: 'pending_actions' },
+    { label: 'Hồ sơ',         route: '/doctor/profile',      icon: 'badge' },
   ];
 
   constructor(private authService: AuthService) {}

@@ -17,9 +17,14 @@ export class SpecialtyService {
 
   constructor(private http: HttpClient) {}
 
-  /** GET /specialties (public) */
+  /** GET /specialties (public - chỉ trả chuyên khoa active) */
   getAll(): Observable<ApiResponse<SpecialtyResponse[]>> {
     return this.http.get<ApiResponse<SpecialtyResponse[]>>(this.baseUrl);
+  }
+
+  /** GET /admin/specialties (admin only - trả toàn bộ chuyên khoa bao gồm cả inactive) */
+  getAllForAdmin(): Observable<ApiResponse<SpecialtyResponse[]>> {
+    return this.http.get<ApiResponse<SpecialtyResponse[]>>(this.adminUrl);
   }
 
   /** POST /admin/specialties */

@@ -19,8 +19,17 @@ export interface DoctorSearchParams {
 @Injectable({ providedIn: 'root' })
 export class DoctorService {
   private readonly baseUrl = `${environment.apiBaseUrl}/doctors`;
+  private readonly adminUrl = `${environment.apiBaseUrl}/admin/doctors`;
 
   constructor(private http: HttpClient) {}
+
+  /** GET /admin/doctors?page=0&size=20 (admin only, trả cả bác sĩ active và inactive) */
+  getAllForAdmin(page: number = 0, size: number = 20): Observable<ApiResponse<PageResponse<DoctorResponse>>> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+    return this.http.get<ApiResponse<PageResponse<DoctorResponse>>>(this.adminUrl, { params });
+  }
 
   /** GET /doctors?specialtyId&keyword&page&size */
   search(params: DoctorSearchParams = {}): Observable<ApiResponse<PageResponse<DoctorResponse>>> {

@@ -10,41 +10,61 @@ import { AppointmentResponse, ScheduleResponse } from '../../../../core/models/d
 import { AuthService } from '../../../../core/services/auth.service';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { StatusChipComponent, StatusType } from '../../../../shared/components/status-chip/status-chip.component';
+import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-doctor-dashboard',
   standalone: true,
   imports: [
-    MatCardModule, MatButtonModule, MatIconModule,
-    NgIf, NgFor, DatePipe, RouterLink,
-    PageHeaderComponent, StatusChipComponent,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    NgIf,
+    NgFor,
+    DatePipe,
+    RouterLink,
+    PageHeaderComponent,
+    StatusChipComponent,
+    LoadingComponent,
+    EmptyStateComponent,
   ],
   template: `
-    <div class="doctor-dashboard-page">
-      <!-- Doctor Hero -->
-      <div class="doctor-hero">
-        <div class="hero-left">
-          <div class="hero-badge">Không gian làm việc Chuyên môn</div>
-          <h1 class="hero-title">Xin chào, Bác sĩ {{ currentUser?.fullName ?? currentUser?.username }}!</h1>
-          <p class="hero-sub">
-            Chúc bác sĩ một ngày làm việc hiệu quả. Hãy theo dõi và xử lý các ca hẹn khám của bệnh nhân bên dưới.
+    <div class="doctor-dashboard-page fade-in">
+      <!-- COMPACT HEADER -->
+      <div class="dashboard-top-bar">
+        <div>
+          <div class="role-badge">Bác sĩ chuyên môn</div>
+          <h1 class="page-title">
+            Chào mừng, Bác sĩ {{ currentUser?.fullName ?? currentUser?.username }}
+          </h1>
+          <p class="page-subtitle">
+            Ưu tiên xử lý các ca hẹn chờ xác nhận và chuẩn bị lịch trực khám tiếp theo.
           </p>
         </div>
-        <div class="hero-right">
-          <a mat-flat-button color="primary" routerLink="/doctor/schedule" class="hero-btn">
+        <div class="top-actions">
+          <a mat-flat-button color="primary" routerLink="/doctor/schedule" class="btn-top">
             <mat-icon>calendar_month</mat-icon>
-            <span>Đăng ký ca làm việc</span>
+            <span>Đăng ký ca khám</span>
+          </a>
+          <a mat-stroked-button routerLink="/doctor/appointments" class="btn-top-outline">
+            <mat-icon>pending_actions</mat-icon>
+            <span>Tất cả lịch hẹn</span>
           </a>
         </div>
       </div>
 
-      <!-- Stats Row -->
+      <!-- STATS ROW -->
       <div class="stats-row">
         <mat-card class="stat-card stat-pending">
           <mat-card-content>
             <div class="stat-icon"><mat-icon>pending_actions</mat-icon></div>
             <div class="stat-info">
-              <div class="stat-value">{{ pendingCount }}</div>
+              <div class="stat-value">
+                <span *ngIf="!isLoading && !hasError">{{ pendingCount }}</span>
+                <span *ngIf="isLoading" class="stat-loading-val">...</span>
+                <span *ngIf="hasError" class="stat-error-val" title="Không thể tải số liệu">--</span>
+              </div>
               <div class="stat-label">Chờ xác nhận</div>
             </div>
           </mat-card-content>
@@ -54,7 +74,11 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
           <mat-card-content>
             <div class="stat-icon"><mat-icon>event_available</mat-icon></div>
             <div class="stat-info">
-              <div class="stat-value">{{ confirmedCount }}</div>
+              <div class="stat-value">
+                <span *ngIf="!isLoading && !hasError">{{ confirmedCount }}</span>
+                <span *ngIf="isLoading" class="stat-loading-val">...</span>
+                <span *ngIf="hasError" class="stat-error-val" title="Không thể tải số liệu">--</span>
+              </div>
               <div class="stat-label">Đã xác nhận</div>
             </div>
           </mat-card-content>
@@ -64,7 +88,11 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
           <mat-card-content>
             <div class="stat-icon"><mat-icon>check_circle</mat-icon></div>
             <div class="stat-info">
-              <div class="stat-value">{{ completedCount }}</div>
+              <div class="stat-value">
+                <span *ngIf="!isLoading && !hasError">{{ completedCount }}</span>
+                <span *ngIf="isLoading" class="stat-loading-val">...</span>
+                <span *ngIf="hasError" class="stat-error-val" title="Không thể tải số liệu">--</span>
+              </div>
               <div class="stat-label">Đã hoàn thành</div>
             </div>
           </mat-card-content>
@@ -74,28 +102,57 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
           <mat-card-content>
             <div class="stat-icon"><mat-icon>schedule</mat-icon></div>
             <div class="stat-info">
-              <div class="stat-value">{{ schedules.length }}</div>
-              <div class="stat-label">Ca khám mở</div>
+              <div class="stat-value">
+                <span *ngIf="!schedulesLoading && !schedulesError">{{ schedules.length }}</span>
+                <span *ngIf="schedulesLoading" class="stat-loading-val">...</span>
+                <span *ngIf="schedulesError" class="stat-error-val" title="Không thể tải số liệu">--</span>
+              </div>
+              <div class="stat-label">Ca khám đã tạo</div>
             </div>
           </mat-card-content>
         </mat-card>
       </div>
 
-      <!-- Recent Appointments -->
+      <!-- RECENT APPOINTMENTS -->
       <mat-card class="recent-card">
-        <div class="card-header-custom">
+        <div class="card-header-bar">
           <div>
-            <h2 class="card-title">Danh sách Lịch hẹn gần đây</h2>
-            <p class="card-subtitle">Các bệnh nhân đã đăng ký khám trong ca của bạn</p>
+            <h2 class="card-title">Lịch hẹn gần đây</h2>
+            <p class="card-subtitle">Các ca đăng ký khám mới nhất của bệnh nhân</p>
           </div>
           <a mat-stroked-button color="primary" routerLink="/doctor/appointments" class="view-all-btn">
-            <span>Xem tất cả</span>
+            <span>Xem tất cả ({{ totalAppointments }})</span>
             <mat-icon>arrow_forward</mat-icon>
           </a>
         </div>
 
         <mat-card-content>
-          <div class="appt-list" *ngIf="recentAppointments.length > 0">
+          <!-- Loading -->
+          <app-loading *ngIf="isLoading" message="Đang tải danh sách lịch hẹn..."></app-loading>
+
+          <!-- Error -->
+          <div class="error-banner" *ngIf="!isLoading && hasError">
+            <mat-icon class="err-icon">error_outline</mat-icon>
+            <div class="err-text">
+              <strong>Không thể tải dữ liệu lịch hẹn</strong>
+              <p>{{ errorMessage }}</p>
+            </div>
+            <button mat-stroked-button color="warn" (click)="loadData()">
+              <mat-icon>refresh</mat-icon>
+              Thử lại
+            </button>
+          </div>
+
+          <!-- Empty -->
+          <app-empty-state
+            *ngIf="!isLoading && !hasError && recentAppointments.length === 0"
+            icon="event_busy"
+            title="Chưa có lịch hẹn nào"
+            message="Các lịch khám bệnh nhân đăng ký sẽ tự động xuất hiện tại đây."
+          ></app-empty-state>
+
+          <!-- List -->
+          <div class="appt-list" *ngIf="!isLoading && !hasError && recentAppointments.length > 0">
             <div class="appt-row" *ngFor="let a of recentAppointments">
               <div class="appt-time">
                 <div class="time-val">{{ a.startAt | date:'HH:mm' }}</div>
@@ -105,19 +162,13 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
                 <div class="patient-avatar"><mat-icon>person</mat-icon></div>
                 <div class="patient-info">
                   <span class="patient-name">Mã bệnh nhân #{{ a.patientAccountId }}</span>
-                  <span class="patient-desc">Phiếu khám số #{{ a.id }}</span>
+                  <span class="patient-desc">Phiếu hẹn khám số #{{ a.id }}</span>
                 </div>
               </div>
               <div class="appt-status">
                 <app-status-chip [status]="mapStatus(a.status)"></app-status-chip>
               </div>
             </div>
-          </div>
-
-          <div class="empty-state" *ngIf="recentAppointments.length === 0">
-            <div class="empty-icon"><mat-icon>event_busy</mat-icon></div>
-            <p class="empty-text">Hiện chưa có lịch hẹn khám nào được đặt</p>
-            <p class="empty-sub">Các lịch hẹn mới của bệnh nhân sẽ tự động hiển thị tại đây.</p>
           </div>
         </mat-card-content>
       </mat-card>
@@ -127,61 +178,76 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
     .doctor-dashboard-page {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
     }
 
-    .doctor-hero {
-      background: linear-gradient(135deg, #042f2e 0%, #115e59 100%);
-      border-radius: 16px;
-      padding: 32px;
+    .dashboard-top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 24px;
-      color: #ffffff;
-      box-shadow: 0 10px 25px -5px rgba(4, 47, 46, 0.25);
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 22px 28px;
+      gap: 20px;
     }
 
-    .hero-badge {
+    .role-badge {
       display: inline-block;
       font-size: 11px;
-      font-weight: 700;
-      color: #5eead4;
-      background: rgba(94, 234, 212, 0.15);
-      border: 1px solid rgba(94, 234, 212, 0.3);
-      padding: 4px 10px;
+      font-weight: 600;
+      color: #0f766e;
+      background: #ccfbf1;
+      padding: 2px 10px;
       border-radius: 9999px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
-    .hero-title {
-      font-size: 24px;
+    .page-title {
+      font-size: 22px;
       font-weight: 800;
-      color: #ffffff;
-      margin: 0 0 8px;
-      letter-spacing: -0.02em;
+      color: #0f172a;
+      margin: 0 0 4px;
+      letter-spacing: -0.01em;
     }
 
-    .hero-sub {
-      font-size: 14px;
-      color: #ccfbf1;
+    .page-subtitle {
+      font-size: 13px;
+      color: #64748b;
       margin: 0;
-      max-width: 580px;
-      line-height: 1.5;
     }
 
-    .hero-btn {
-      height: 44px;
-      padding: 0 18px;
-      border-radius: 10px;
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .btn-top {
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-weight: 600;
+      gap: 6px;
       background: #0d9488 !important;
-      box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4) !important;
     }
 
+    .btn-top-outline {
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #334155;
+    }
+
+    /* STATS ROW */
     .stats-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -189,33 +255,29 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
     }
 
     .stat-card {
-      border-radius: 16px;
+      border-radius: 14px;
       border: 1px solid #e2e8f0;
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
-      transition: transform 0.2s;
-
-      &:hover {
-        transform: translateY(-2px);
-      }
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
     }
 
     .stat-card mat-card-content {
       display: flex;
       align-items: center;
       gap: 16px;
-      padding: 20px !important;
+      padding: 18px !important;
     }
 
     .stat-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
 
-      mat-icon { font-size: 26px; width: 26px; height: 26px; }
+      mat-icon { font-size: 22px; width: 22px; height: 22px; }
     }
 
     .stat-pending   { .stat-icon { background: #fef3c7; mat-icon { color: #d97706; } } }
@@ -223,42 +285,63 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
     .stat-completed { .stat-icon { background: #dcfce7; mat-icon { color: #16a34a; } } }
     .stat-schedules { .stat-icon { background: #ccfbf1; mat-icon { color: #0d9488; } } }
 
-    .stat-value { font-size: 30px; font-weight: 800; color: #0f172a; line-height: 1; }
-    .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; font-weight: 500; }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1;
 
+      .stat-error-val {
+        color: #dc2626;
+        font-size: 22px;
+      }
+
+      .stat-loading-val {
+        color: #94a3b8;
+        font-weight: 400;
+        letter-spacing: 2px;
+        font-size: 20px;
+      }
+    }
+    .stat-label { font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500; }
+
+    /* RECENT APPOINTMENTS */
     .recent-card {
-      border-radius: 16px;
+      border-radius: 14px;
       border: 1px solid #e2e8f0;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+      overflow: hidden;
     }
 
-    .card-header-custom {
+    .card-header-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px 24px;
+      padding: 18px 24px;
       border-bottom: 1px solid #f1f5f9;
     }
 
     .card-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 700;
       color: #0f172a;
       margin: 0;
     }
 
     .card-subtitle {
-      font-size: 13px;
+      font-size: 12px;
       color: #64748b;
       margin: 2px 0 0;
     }
 
     .view-all-btn {
-      border-radius: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
       display: flex;
       align-items: center;
       gap: 6px;
-      font-weight: 600;
     }
 
     .appt-list {
@@ -269,8 +352,8 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
     .appt-row {
       display: flex;
       align-items: center;
-      gap: 20px;
-      padding: 16px 24px;
+      gap: 16px;
+      padding: 14px 24px;
       border-bottom: 1px solid #f1f5f9;
       transition: background 0.15s;
 
@@ -281,13 +364,13 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
     .appt-time {
       min-width: 80px;
       text-align: center;
-      padding: 6px 12px;
+      padding: 6px 10px;
       background: #f1f5f9;
-      border-radius: 10px;
+      border-radius: 8px;
     }
 
-    .time-val { font-size: 15px; font-weight: 700; color: #0f172a; }
-    .date-val { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .time-val { font-size: 14px; font-weight: 700; color: #0f172a; }
+    .date-val { font-size: 11px; color: #64748b; margin-top: 1px; }
 
     .appt-patient {
       flex: 1;
@@ -297,8 +380,8 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
     }
 
     .patient-avatar {
-      width: 38px;
-      height: 38px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       background: #e0f2fe;
       color: #0284c7;
@@ -313,7 +396,7 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
     }
 
     .patient-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: #0f172a;
     }
@@ -323,44 +406,24 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
       color: #64748b;
     }
 
-    .empty-state {
-      padding: 48px 24px;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .empty-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: #f1f5f9;
-      color: #94a3b8;
+    .error-banner {
       display: flex;
       align-items: center;
-      justify-content: center;
-      margin-bottom: 12px;
+      gap: 14px;
+      padding: 16px 20px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      margin: 16px 24px;
+      color: #991b1b;
 
-      mat-icon { font-size: 32px; width: 32px; height: 32px; }
-    }
-
-    .empty-text {
-      font-size: 15px;
-      font-weight: 600;
-      color: #334155;
-      margin: 0;
-    }
-
-    .empty-sub {
-      font-size: 13px;
-      color: #94a3b8;
-      margin: 4px 0 0;
+      .err-icon { color: #ef4444; font-size: 22px; width: 22px; height: 22px; }
+      .err-text { flex: 1; p { margin: 2px 0 0; font-size: 12px; color: #b91c1c; } }
     }
 
     @media (max-width: 900px) {
       .stats-row { grid-template-columns: repeat(2, 1fr); }
-      .doctor-hero { flex-direction: column; align-items: flex-start; }
+      .dashboard-top-bar { flex-direction: column; align-items: flex-start; }
     }
 
     @media (max-width: 600px) {
@@ -372,9 +435,15 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
 export class DoctorDashboardComponent implements OnInit {
   recentAppointments: AppointmentResponse[] = [];
   schedules: ScheduleResponse[] = [];
+  totalAppointments = 0;
   pendingCount = 0;
   confirmedCount = 0;
   completedCount = 0;
+  isLoading = false;
+  hasError = false;
+  errorMessage = '';
+  schedulesLoading = false;
+  schedulesError = false;
 
   constructor(
     private appointmentService: AppointmentService,
@@ -389,18 +458,38 @@ export class DoctorDashboardComponent implements OnInit {
   }
 
   loadData(): void {
+    this.isLoading = true;
+    this.hasError = false;
+    this.errorMessage = '';
+
     this.appointmentService.getDoctorAppointments(0, 50).subscribe({
       next: (res) => {
         const all = res.data?.content ?? [];
+        this.totalAppointments = all.length;
         this.recentAppointments = all.slice(0, 5);
         this.pendingCount   = all.filter(a => a.status === 'PENDING').length;
         this.confirmedCount = all.filter(a => a.status === 'CONFIRMED').length;
         this.completedCount = all.filter(a => a.status === 'COMPLETED').length;
+        this.isLoading = false;
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.hasError = true;
+        this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải lịch hẹn.';
       },
     });
 
+    this.schedulesLoading = true;
+    this.schedulesError = false;
     this.scheduleService.getMySchedules().subscribe({
-      next: (res) => { this.schedules = res.data ?? []; },
+      next: (res) => {
+        this.schedules = res.data ?? [];
+        this.schedulesLoading = false;
+      },
+      error: () => {
+        this.schedulesLoading = false;
+        this.schedulesError = true;
+      },
     });
   }
 

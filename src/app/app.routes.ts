@@ -74,6 +74,14 @@ export const routes: Routes = [
         title: 'Tìm bác sĩ — Clinic Booking',
       },
       {
+        path: 'booking/:id',
+        loadComponent: () =>
+          import('./features/patient/pages/booking/patient-booking.component').then(
+            (m) => m.PatientBookingComponent
+          ),
+        title: 'Đặt lịch khám — Clinic Booking',
+      },
+      {
         path: 'appointments',
         loadComponent: () =>
           import('./features/patient/pages/appointments/patient-appointments.component').then(

@@ -9,17 +9,14 @@ import { User, Role, AccountResponse } from '../models/user.model';
 import { StorageService } from './storage.service';
 import { ROLE_HOME_ROUTES } from '../constants/app.constants';
 
-/** Chuẩn hóa role linh hoạt từ Backend (hỗ trợ ADMIN, ROLE_ADMIN, DOCTOR, ROLE_DOCTOR...) */
-export function normalizeRole(rawRole?: string | null, username?: string, email?: string): Role {
-  if (username === 'admin' || email?.toLowerCase().startsWith('admin@')) {
-    return Role.ADMIN;
-  }
+/** Chuẩn hóa role linh hoạt từ Backend (hỗ trợ ADMIN, ROLE_ADMIN, DOCTOR, ROLE_DOCTOR, PATIENT, ROLE_PATIENT) */
+export function normalizeRole(rawRole?: string | null): Role {
   if (!rawRole) return Role.PATIENT;
 
   const str = rawRole.toString().toUpperCase().trim();
-  if (str.includes('ADMIN')) return Role.ADMIN;
-  if (str.includes('DOCTOR') || str.includes('BAC_SI') || str.includes('BACSI')) return Role.DOCTOR;
-  if (str.includes('PATIENT') || str.includes('BENH_NHAN') || str.includes('USER')) return Role.PATIENT;
+  if (str === 'ADMIN' || str === 'ROLE_ADMIN' || str.endsWith('_ADMIN')) return Role.ADMIN;
+  if (str === 'DOCTOR' || str === 'ROLE_DOCTOR' || str.endsWith('_DOCTOR')) return Role.DOCTOR;
+  if (str === 'PATIENT' || str === 'ROLE_PATIENT' || str.endsWith('_PATIENT')) return Role.PATIENT;
 
   return Role.PATIENT;
 }
@@ -49,7 +46,7 @@ export class AuthService {
     if (!user) return null;
 
     // Chuẩn hóa role nếu trong storage đang lưu giá trị cũ
-    const correctedRole = normalizeRole(user.role, user.username, user.email);
+    const correctedRole = normalizeRole(user.role);
     if (user.role !== correctedRole) {
       user.role = correctedRole;
       this.storageService.setUser(user);
@@ -111,7 +108,7 @@ export class AuthService {
     this.storageService.setToken(data.accessToken);
 
     const acc = data.account;
-    const role: Role = normalizeRole(acc.roleName, acc.username, acc.email);
+    const role: Role = normalizeRole(acc.roleName);
 
     const user: User = {
       id: acc.id,

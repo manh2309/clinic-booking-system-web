@@ -62,7 +62,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
             Vui lòng nhập họ tên
           </mat-error>
           <mat-error *ngIf="registerForm.get('fullName')?.hasError('minlength')">
-            Họ tên phải có ít nhất 2 ký tự
+            Họ tên phải có ít nhất 4 ký tự
           </mat-error>
         </mat-form-field>
 
@@ -131,7 +131,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
             matInput
             [type]="hidePassword ? 'password' : 'text'"
             formControlName="password"
-            placeholder="Ít nhất 6 ký tự"
+            placeholder="Ít nhất 8 ký tự"
             autocomplete="new-password"
             id="register-password"
           />
@@ -145,7 +145,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
             Vui lòng nhập mật khẩu
           </mat-error>
           <mat-error *ngIf="registerForm.get('password')?.hasError('minlength')">
-            Mật khẩu phải có ít nhất 6 ký tự
+            Mật khẩu phải có ít nhất 8 ký tự
           </mat-error>
         </mat-form-field>
 
@@ -291,11 +291,11 @@ export class RegisterComponent implements OnInit {
   ngOnInit(): void {
     this.registerForm = this.fb.group(
       {
-        fullName: ['', [Validators.required, Validators.minLength(2)]],
+        fullName: ['', [Validators.required, Validators.minLength(4)]],
         email: ['', [Validators.required, Validators.email]],
-        phone: ['', [Validators.required, Validators.pattern(/^[0-9]{10,11}$/)]],
+        phone: ['', [Validators.required, Validators.pattern(/^[0-9+]{9,15}$/)]],
         username: ['', [Validators.required, Validators.minLength(4)]],
-        password: ['', [Validators.required, Validators.minLength(6)]],
+        password: ['', [Validators.required, Validators.minLength(8)]],
         confirmPassword: ['', Validators.required],
       },
       { validators: passwordMatchValidator }

@@ -116,30 +116,6 @@ interface NavItem {
                 </span>
               </div>
               <mat-divider></mat-divider>
-
-              <!-- Portal Switch Buttons nếu là Admin hoặc Doctor -->
-              <button
-                mat-menu-item
-                *ngIf="currentUser?.role === Role.ADMIN"
-                routerLink="/admin/dashboard"
-                class="portal-switch-item"
-              >
-                <mat-icon color="warn">admin_panel_settings</mat-icon>
-                <span><strong>Bảng Điều Khiển Quản Trị</strong></span>
-              </button>
-
-              <button
-                mat-menu-item
-                *ngIf="currentUser?.role === Role.DOCTOR"
-                routerLink="/doctor/dashboard"
-                class="portal-switch-item"
-              >
-                <mat-icon color="primary">medical_services</mat-icon>
-                <span><strong>Bàn Làm Việc Bác Sĩ</strong></span>
-              </button>
-
-              <mat-divider *ngIf="isStaff()"></mat-divider>
-
               <button mat-menu-item routerLink="/patient/profile">
                 <mat-icon color="primary">account_circle</mat-icon>
                 <span>Hồ sơ cá nhân</span>
@@ -167,10 +143,10 @@ interface NavItem {
         <router-outlet></router-outlet>
       </main>
 
-      <!-- PROFESSIONAL FOOTER -->
+      <!-- COMPACT FOOTER -->
       <footer class="patient-footer">
         <div class="footer-container">
-          <div class="footer-col brand-col">
+          <div class="footer-brand-wrap">
             <div class="footer-brand">
               <div class="brand-icon small">
                 <mat-icon>local_hospital</mat-icon>
@@ -178,34 +154,15 @@ interface NavItem {
               <span class="brand-name">ClinicCare</span>
             </div>
             <p class="footer-desc">
-              Hệ thống đặt lịch khám bệnh trực tuyến hàng đầu, kết nối người bệnh với đội ngũ bác sĩ chuyên khoa giỏi và các bệnh viện uy tín.
+              Hệ thống đặt lịch khám bệnh trực tuyến — Kết nối bệnh nhân với bác sĩ chuyên khoa.
             </p>
-            <div class="footer-hotline">
-              <mat-icon>support_agent</mat-icon>
-              <div>
-                <span class="label">Tổng đài hỗ trợ 24/7</span>
-                <span class="phone">1900 6868</span>
-              </div>
-            </div>
           </div>
 
-          <div class="footer-col">
-            <h4>Dịch vụ y tế</h4>
-            <ul>
-              <li><a routerLink="/patient/doctors">Đặt lịch khám chuyên khoa</a></li>
-              <li><a routerLink="/patient/home">Tư vấn sức khỏe trực tuyến</a></li>
-              <li><a routerLink="/patient/appointments">Theo dõi lịch khám cá nhân</a></li>
-              <li><a routerLink="/patient/medical-records">Hồ sơ bệnh án điện tử</a></li>
-            </ul>
-          </div>
-
-          <div class="footer-col">
-            <h4>Thông tin phòng khám</h4>
-            <ul>
-              <li><mat-icon class="icon-inline">place</mat-icon> Số 123 Đường Cầu Giấy, Hà Nội</li>
-              <li><mat-icon class="icon-inline">schedule</mat-icon> Thứ 2 - Chủ Nhật: 07:30 - 20:00</li>
-              <li><mat-icon class="icon-inline">email</mat-icon> hotro&#64;cliniccare.vn</li>
-            </ul>
+          <div class="footer-links">
+            <a routerLink="/patient/home">Trang chủ</a>
+            <a routerLink="/patient/doctors">Tìm bác sĩ</a>
+            <a routerLink="/patient/appointments">Lịch hẹn của tôi</a>
+            <a routerLink="/patient/medical-records">Hồ sơ bệnh án</a>
           </div>
         </div>
 
@@ -489,130 +446,77 @@ interface NavItem {
       box-sizing: border-box;
     }
 
-    /* PROFESSIONAL FOOTER */
+    /* COMPACT FOOTER */
     .patient-footer {
       background: #ffffff;
       border-top: 1px solid #e2e8f0;
       margin-top: 48px;
-      color: #475569;
+      color: #64748b;
     }
 
     .footer-container {
       max-width: 1360px;
       margin: 0 auto;
-      padding: 48px 24px 32px;
-      display: grid;
-      grid-template-columns: 2fr 1.2fr 1.5fr;
-      gap: 40px;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .footer-brand-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .footer-brand {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
+      gap: 8px;
     }
 
     .footer-desc {
       font-size: 13px;
-      line-height: 1.7;
       color: #64748b;
-      max-width: 420px;
-      margin-bottom: 20px;
-    }
-
-    .footer-hotline {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 18px;
-      background: #f0f9ff;
-      border: 1px solid #bae6fd;
-      border-radius: 12px;
-
-      mat-icon {
-        font-size: 28px;
-        width: 28px;
-        height: 28px;
-        color: #0284c7;
-      }
-
-      .label {
-        display: block;
-        font-size: 11px;
-        color: #64748b;
-        font-weight: 600;
-      }
-
-      .phone {
-        display: block;
-        font-size: 18px;
-        font-weight: 800;
-        color: #0284c7;
-        line-height: 1.2;
-      }
-    }
-
-    .footer-col h4 {
-      font-size: 15px;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 16px;
-    }
-
-    .footer-col ul {
-      list-style: none;
-      padding: 0;
       margin: 0;
+    }
+
+    .footer-links {
       display: flex;
-      flex-direction: column;
-      gap: 10px;
+      align-items: center;
+      gap: 20px;
 
-      li {
+      a {
         font-size: 13px;
-        color: #64748b;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        font-weight: 500;
+        color: #475569;
+        text-decoration: none;
+        transition: color 0.15s;
 
-        a {
-          color: #64748b;
-          text-decoration: none;
-          transition: color 0.2s;
-
-          &:hover {
-            color: #0284c7;
-          }
+        &:hover {
+          color: #0284c7;
         }
       }
     }
 
-    .icon-inline {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      color: #0284c7;
-    }
-
     .footer-bottom {
       border-top: 1px solid #f1f5f9;
-      padding: 20px 24px;
+      padding: 12px 24px;
       text-align: center;
       font-size: 12px;
       color: #94a3b8;
     }
 
-    @media (max-width: 992px) {
-      .footer-container {
-        grid-template-columns: 1fr;
-        gap: 32px;
-      }
-      .quick-book-btn {
-        display: none;
-      }
-    }
-
     @media (max-width: 768px) {
+      .footer-container {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .footer-links {
+        flex-wrap: wrap;
+        gap: 12px;
+      }
       .navbar-nav { display: none; }
       .user-info { display: none; }
       .brand-tag { display: none; }
@@ -646,10 +550,6 @@ export class PatientLayoutComponent implements OnInit {
     if (role === Role.ADMIN) return 'Quản trị viên';
     if (role === Role.DOCTOR) return 'Bác sĩ';
     return 'Bệnh nhân';
-  }
-
-  isStaff(): boolean {
-    return this.currentUser?.role === Role.ADMIN || this.currentUser?.role === Role.DOCTOR;
   }
 
   getInitials(name?: string): string {

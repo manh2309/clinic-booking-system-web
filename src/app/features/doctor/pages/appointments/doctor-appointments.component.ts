@@ -28,7 +28,20 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
 
       <app-loading *ngIf="isLoading" message="Đang tải lịch hẹn..."></app-loading>
 
-      <div *ngIf="!isLoading">
+      <!-- ERROR STATE -->
+      <div class="error-banner" *ngIf="!isLoading && hasError">
+        <mat-icon class="err-icon">error_outline</mat-icon>
+        <div class="err-text">
+          <strong>Không thể tải danh sách lịch hẹn</strong>
+          <p>{{ errorMessage }}</p>
+        </div>
+        <button mat-stroked-button color="warn" (click)="load()">
+          <mat-icon>refresh</mat-icon>
+          Thử lại
+        </button>
+      </div>
+
+      <div *ngIf="!isLoading && !hasError">
         <app-empty-state
           *ngIf="appointments.length === 0"
           icon="event_busy"
@@ -72,11 +85,6 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
                       *ngIf="appt.status === 'CONFIRMED'">
                       <mat-icon>task_alt</mat-icon>
                       Hoàn thành
-                    </button>
-                    <button mat-menu-item (click)="updateStatus(appt, 'CANCELED')"
-                      *ngIf="appt.status === 'PENDING' || appt.status === 'CONFIRMED'">
-                      <mat-icon color="warn">cancel</mat-icon>
-                      <span style="color:#dc2626">Hủy</span>
                     </button>
                   </mat-menu>
                 </div>
@@ -134,11 +142,28 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
       align-items: center;
       gap: 8px;
     }
+
+    .error-banner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      color: #991b1b;
+      margin-bottom: 20px;
+
+      .err-icon { color: #ef4444; font-size: 22px; width: 22px; height: 22px; }
+      .err-text { flex: 1; p { margin: 2px 0 0; font-size: 12px; color: #b91c1c; } }
+    }
   `],
 })
 export class DoctorAppointmentsComponent implements OnInit {
   appointments: AppointmentResponse[] = [];
   isLoading = false;
+  hasError = false;
+  errorMessage = '';
   currentPage = 0;
   pageSize = 10;
   totalElements = 0;
@@ -152,13 +177,20 @@ export class DoctorAppointmentsComponent implements OnInit {
 
   load(): void {
     this.isLoading = true;
+    this.hasError = false;
+    this.errorMessage = '';
+
     this.appointmentService.getDoctorAppointments(this.currentPage, this.pageSize).subscribe({
       next: (res) => {
         this.appointments = res.data?.content ?? [];
         this.totalElements = res.data?.totalElements ?? 0;
         this.isLoading = false;
       },
-      error: () => { this.isLoading = false; },
+      error: (err) => {
+        this.isLoading = false;
+        this.hasError = true;
+        this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải lịch hẹn.';
+      },
     });
   }
 
@@ -169,7 +201,7 @@ export class DoctorAppointmentsComponent implements OnInit {
   }
 
   canAct(status: AppointmentStatus): boolean {
-    return status !== 'COMPLETED' && status !== 'CANCELED';
+    return status === 'PENDING' || status === 'CONFIRMED';
   }
 
   mapStatus(s: string): StatusType {

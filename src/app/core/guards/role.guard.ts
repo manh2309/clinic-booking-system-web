@@ -19,11 +19,6 @@ export const roleGuard: CanActivateFn = (route, _state) => {
     return true;
   }
 
-  // Quản trị viên (ADMIN) có quyền truy cập toàn diện để quản lý và kiểm tra hệ thống
-  if (authService.hasRole(Role.ADMIN)) {
-    return true;
-  }
-
   if (authService.hasAnyRole(requiredRoles)) {
     return true;
   }

@@ -104,8 +104,21 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
       <!-- LOADING STATE -->
       <app-loading *ngIf="isLoading" message="Đang tìm kiếm bác sĩ..."></app-loading>
 
+      <!-- ERROR STATE -->
+      <div class="error-banner" *ngIf="!isLoading && hasError">
+        <mat-icon class="err-icon">error_outline</mat-icon>
+        <div class="err-text">
+          <strong>Không thể tải danh sách bác sĩ</strong>
+          <p>{{ errorMessage }}</p>
+        </div>
+        <button mat-stroked-button color="warn" (click)="loadDoctors()">
+          <mat-icon>refresh</mat-icon>
+          Thử lại
+        </button>
+      </div>
+
       <!-- RESULTS SECTION -->
-      <div class="results-container" *ngIf="!isLoading">
+      <div class="results-container" *ngIf="!isLoading && !hasError">
         <!-- Results count header -->
         <div class="results-meta-row" *ngIf="doctors.length > 0">
           <span class="results-count">
@@ -118,7 +131,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
           *ngIf="doctors.length === 0"
           icon="person_search"
           title="Không tìm thấy bác sĩ phù hợp"
-          message="Vui lòng thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc chuyên khoa"
+          message="Vui lòng thử tìm kiếm với từ khóa khác hoặc chọn lại chuyên khoa."
         ></app-empty-state>
 
         <!-- DOCTORS GRID -->
@@ -150,20 +163,8 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
             <!-- Body Description -->
             <div class="card-body">
               <p class="doctor-bio">
-                {{ doctor.description || 'Bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm phục vụ bệnh nhân tại hệ thống ClinicCare.' }}
+                {{ doctor.description || 'Bác sĩ chuyên khoa tại hệ thống ClinicCare tiếp nhận khám và tư vấn theo lịch hẹn.' }}
               </p>
-
-              <div class="doctor-metrics">
-                <div class="metric-pill">
-                  <mat-icon class="star">star</mat-icon>
-                  <span class="rating">5.0</span>
-                  <span class="sub">(120+ lượt khám)</span>
-                </div>
-                <div class="metric-pill verified">
-                  <mat-icon>verified</mat-icon>
-                  <span>Đã kiểm định</span>
-                </div>
-              </div>
             </div>
 
             <!-- Footer Action -->
@@ -377,35 +378,19 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
       overflow: hidden;
     }
 
-    .doctor-metrics {
+    .error-banner {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-top: 4px;
-    }
+      gap: 14px;
+      padding: 16px 20px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      color: #991b1b;
+      margin-bottom: 16px;
 
-    .metric-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #fefce8;
-      color: #854d0e;
-      border: 1px solid #fef08a;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
-
-      .star { color: #eab308; font-size: 15px; width: 15px; height: 15px; }
-      .sub { font-weight: 500; font-size: 11px; color: #a16207; }
-
-      &.verified {
-        background: #ecfdf5;
-        border-color: #a7f3d0;
-        color: #065f46;
-
-        mat-icon { color: #10b981; font-size: 15px; width: 15px; height: 15px; }
-      }
+      .err-icon { color: #ef4444; font-size: 22px; width: 22px; height: 22px; }
+      .err-text { flex: 1; p { margin: 2px 0 0; font-size: 12px; color: #b91c1c; } }
     }
 
     .card-footer {
@@ -441,6 +426,8 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
   doctors: DoctorResponse[] = [];
   specialties: SpecialtyResponse[] = [];
   isLoading = false;
+  hasError = false;
+  errorMessage = '';
   currentPage = 0;
   pageSize = 12;
   totalElements = 0;
@@ -486,17 +473,25 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  specialtiesError = false;
+
   loadSpecialties(): void {
+    this.specialtiesError = false;
     this.specialtyService.getAll().subscribe({
       next: (res) => {
         this.specialties = res.data ?? [];
       },
-      error: () => {},
+      error: () => {
+        this.specialtiesError = true;
+      },
     });
   }
 
   loadDoctors(): void {
     this.isLoading = true;
+    this.hasError = false;
+    this.errorMessage = '';
+
     const { keyword, specialtyId } = this.searchForm.value as {
       keyword: string;
       specialtyId: number | null;
@@ -514,8 +509,10 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
           this.totalElements = res.data?.totalElements ?? 0;
           this.isLoading = false;
         },
-        error: () => {
+        error: (err) => {
           this.isLoading = false;
+          this.hasError = true;
+          this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải danh sách bác sĩ.';
         },
       });
   }

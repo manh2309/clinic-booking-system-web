@@ -39,74 +39,116 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
     EmptyStateComponent,
   ],
   template: `
-    <div class="fade-in">
-      <app-page-header
-        title="Quản lý Chuyên khoa khám bệnh"
-        subtitle="Danh mục các chuyên khoa phục vụ công tác điều phối bệnh nhân"
-      ></app-page-header>
+    <div class="fade-in admin-specialties-page">
+      <!-- HEADER & TOP ACTION -->
+      <div class="page-top-bar">
+        <div>
+          <h1 class="page-title">Quản lý Chuyên khoa</h1>
+          <p class="page-subtitle">Danh mục các chuyên khoa y tế phục vụ công tác điều phối và đặt khám</p>
+        </div>
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="openAddForm()"
+          *ngIf="!isFormOpen"
+          class="btn-add-top"
+        >
+          <mat-icon>add_circle</mat-icon>
+          <span>Thêm chuyên khoa</span>
+        </button>
+      </div>
 
-      <div class="specialty-layout">
-        <!-- FORM CARD -->
-        <mat-card class="form-card">
-          <mat-card-header>
-            <mat-card-title>{{ editMode ? 'Cập nhật chuyên khoa' : 'Thêm chuyên khoa mới' }}</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <form [formGroup]="specialtyForm" (ngSubmit)="onSubmit()" class="specialty-form">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Tên chuyên khoa</mat-label>
-                <input matInput formControlName="name" placeholder="VD: Khoa Tim mạch" />
-                <mat-icon matPrefix>local_hospital</mat-icon>
-                <mat-error>Bắt buộc nhập tên chuyên khoa</mat-error>
-              </mat-form-field>
+      <!-- FORM PANEL (OPENS ON ADD / EDIT) -->
+      <mat-card class="form-panel-card" *ngIf="isFormOpen">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <mat-icon class="panel-icon">{{ editMode ? 'edit' : 'add_circle' }}</mat-icon>
+            <h2 class="panel-title">
+              {{ editMode ? 'Cập nhật thông tin chuyên khoa' : 'Thêm chuyên khoa mới' }}
+            </h2>
+          </div>
+          <button mat-icon-button (click)="cancelForm()" [disabled]="isSaving" title="Đóng">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
 
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Mô tả chuyên khoa</mat-label>
-                <textarea
-                  matInput
-                  formControlName="description"
-                  rows="4"
-                  placeholder="Mô tả chức năng, các chứng bệnh tiếp nhận điều trị..."
-                ></textarea>
-                <mat-icon matPrefix>notes</mat-icon>
-              </mat-form-field>
+        <mat-card-content>
+          <form [formGroup]="specialtyForm" (ngSubmit)="onSubmit()" class="specialty-form">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Tên chuyên khoa</mat-label>
+              <input matInput formControlName="name" placeholder="VD: Khoa Tim mạch" />
+              <mat-icon matPrefix>local_hospital</mat-icon>
+              <mat-error>Bắt buộc nhập tên chuyên khoa</mat-error>
+            </mat-form-field>
 
-              <div class="form-actions">
-                <button mat-flat-button color="primary" type="submit" [disabled]="isSaving" class="btn-submit">
-                  <mat-spinner *ngIf="isSaving" diameter="18" class="spinner-inline"></mat-spinner>
-                  <mat-icon *ngIf="!isSaving">{{ editMode ? 'save' : 'add_circle' }}</mat-icon>
-                  <span>{{ editMode ? 'Lưu thay đổi' : 'Tạo chuyên khoa' }}</span>
-                </button>
-                <button mat-stroked-button type="button" *ngIf="editMode" (click)="cancelEdit()">
-                  Hủy
-                </button>
-              </div>
-            </form>
-          </mat-card-content>
-        </mat-card>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Mô tả chuyên môn</mat-label>
+              <textarea
+                matInput
+                formControlName="description"
+                rows="3"
+                placeholder="Mô tả chức năng điều trị, phạm vi tiếp nhận bệnh nhân..."
+              ></textarea>
+              <mat-icon matPrefix>notes</mat-icon>
+            </mat-form-field>
 
-        <!-- TABLE CARD -->
-        <mat-card class="table-card">
-          <mat-card-header>
-            <mat-card-title>Danh mục chuyên khoa hiện có ({{ specialties.length }})</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <app-loading *ngIf="isLoading" [diameter]="32"></app-loading>
+            <div class="form-btn-row">
+              <button
+                mat-flat-button
+                color="primary"
+                type="submit"
+                [disabled]="isSaving"
+                class="btn-submit"
+              >
+                <mat-spinner *ngIf="isSaving" diameter="18" class="spinner-inline"></mat-spinner>
+                <mat-icon *ngIf="!isSaving">{{ editMode ? 'save' : 'check' }}</mat-icon>
+                <span>{{ editMode ? 'Lưu thay đổi' : 'Tạo chuyên khoa' }}</span>
+              </button>
+              <button
+                mat-stroked-button
+                type="button"
+                (click)="cancelForm()"
+                [disabled]="isSaving"
+              >
+                Hủy bỏ
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
 
-            <app-empty-state
-              *ngIf="!isLoading && specialties.length === 0"
-              icon="local_hospital"
-              title="Chưa có chuyên khoa nào"
-            ></app-empty-state>
+      <!-- TABLE CARD (PRIMARY CONTENT) -->
+      <mat-card class="table-card">
+        <mat-card-content>
+          <!-- Loading State -->
+          <app-loading *ngIf="isLoading" message="Đang tải danh mục chuyên khoa..."></app-loading>
 
-            <table
-              mat-table
-              [dataSource]="specialties"
-              *ngIf="!isLoading && specialties.length > 0"
-              class="specialty-table"
-            >
+          <!-- Error State -->
+          <div class="error-banner" *ngIf="!isLoading && hasError">
+            <mat-icon class="err-icon">error_outline</mat-icon>
+            <div class="err-text">
+              <strong>Không thể tải danh sách chuyên khoa</strong>
+              <p>{{ errorMessage }}</p>
+            </div>
+            <button mat-stroked-button color="warn" (click)="loadSpecialties()">
+              <mat-icon>refresh</mat-icon>
+              Thử lại
+            </button>
+          </div>
+
+          <!-- Empty State -->
+          <app-empty-state
+            *ngIf="!isLoading && !hasError && specialties.length === 0"
+            icon="local_hospital"
+            title="Chưa có chuyên khoa nào"
+            message="Bấm nút 'Thêm chuyên khoa' để khởi tạo danh mục đầu tiên."
+          ></app-empty-state>
+
+          <!-- Table -->
+          <div class="table-responsive" *ngIf="!isLoading && !hasError && specialties.length > 0">
+            <table mat-table [dataSource]="specialties" class="specialty-table">
               <ng-container matColumnDef="id">
-                <th mat-header-cell *matHeaderCellDef>#</th>
+                <th mat-header-cell *matHeaderCellDef class="th-id">#</th>
                 <td mat-cell *matCellDef="let s">{{ s.id }}</td>
               </ng-container>
 
@@ -117,9 +159,9 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
                     <div class="spec-icon">
                       <mat-icon>medical_services</mat-icon>
                     </div>
-                    <div>
+                    <div class="spec-info">
                       <div class="spec-name">{{ s.name }}</div>
-                      <div class="spec-desc">{{ s.description || 'Chưa có mô tả' }}</div>
+                      <div class="spec-desc">{{ s.description || 'Chưa có thông tin mô tả' }}</div>
                     </div>
                   </div>
                 </td>
@@ -127,13 +169,13 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 
               <!-- Status Toggle -->
               <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Trạng thái</th>
+                <th mat-header-cell *matHeaderCellDef>Trạng thái hiển thị</th>
                 <td mat-cell *matCellDef="let s">
                   <mat-slide-toggle
                     [checked]="s.active !== false"
                     (change)="toggleStatus(s)"
                     color="primary"
-                    matTooltip="Bật/Tắt hoạt động của chuyên khoa"
+                    matTooltip="Bật/Tắt hiển thị cho bệnh nhân"
                   >
                     <span class="status-txt" [class.off]="s.active === false">
                       {{ s.active === false ? 'Tạm ẩn' : 'Hiển thị' }}
@@ -143,8 +185,8 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
               </ng-container>
 
               <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef>Thao tác</th>
-                <td mat-cell *matCellDef="let s">
+                <th mat-header-cell *matHeaderCellDef class="th-actions">Thao tác</th>
+                <td mat-cell *matCellDef="let s" class="td-actions">
                   <button mat-icon-button color="primary" (click)="startEdit(s)" title="Chỉnh sửa">
                     <mat-icon>edit</mat-icon>
                   </button>
@@ -154,23 +196,90 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
               <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
               <tr mat-row *matRowDef="let r; columns: displayedColumns;"></tr>
             </table>
-          </mat-card-content>
-        </mat-card>
-      </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
     </div>
   `,
   styles: [`
-    .specialty-layout {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 24px;
-      align-items: start;
+    .admin-specialties-page {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
 
-    .form-card, .table-card {
-      border-radius: 20px !important;
-      border: 1px solid #e2e8f0 !important;
-      box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05) !important;
+    .page-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+
+    .page-subtitle {
+      font-size: 13px;
+      color: #64748b;
+      margin: 4px 0 0;
+    }
+
+    .btn-add-top {
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    /* FORM PANEL */
+    .form-panel-card {
+      border: 1px solid #bfdbfe !important;
+      background: #f8fafc !important;
+      border-radius: 14px !important;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08) !important;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      background: #eff6ff;
+      border-bottom: 1px solid #dbeafe;
+    }
+
+    .panel-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-icon {
+      color: #0284c7;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .form-panel-card mat-card-content {
+      padding: 20px !important;
     }
 
     .specialty-form {
@@ -181,54 +290,84 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 
     .full-width { width: 100%; }
 
-    .form-actions {
+    .form-btn-row {
       display: flex;
-      gap: 12px;
-      margin-top: 8px;
+      gap: 10px;
+      margin-top: 4px;
     }
 
     .btn-submit {
-      height: 44px;
-      font-weight: 700;
-      flex: 1;
+      height: 40px;
+      padding: 0 20px;
+      border-radius: 8px;
+      font-weight: 600;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
+      gap: 6px;
     }
 
-    .table-card mat-card-content { padding: 0 !important; }
-    .specialty-table { width: 100%; }
+    /* TABLE */
+    .table-card {
+      border-radius: 14px !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
+      background: #ffffff !important;
+      overflow: hidden;
+    }
+
+    .table-card mat-card-content {
+      padding: 0 !important;
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    .specialty-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .th-id { width: 50px; }
+    .th-actions, .td-actions { width: 80px; text-align: center; }
 
     .mat-mdc-header-cell {
       font-weight: 700;
-      color: #0f172a;
+      color: #334155;
       background: #f8fafc;
-      padding: 16px;
+      padding: 14px 16px;
       border-bottom: 1px solid #e2e8f0;
+      font-size: 13px;
     }
 
     .mat-mdc-cell {
-      padding: 16px;
+      padding: 14px 16px;
       border-bottom: 1px solid #f1f5f9;
+      font-size: 13px;
     }
 
     .spec-cell {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
 
     .spec-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
       background: #e0f2fe;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
 
-      mat-icon { color: #0284c7; font-size: 24px; width: 24px; height: 24px; }
+      mat-icon { color: #0284c7; font-size: 20px; width: 20px; height: 20px; }
+    }
+
+    .spec-info {
+      display: flex;
+      flex-direction: column;
     }
 
     .spec-name {
@@ -241,25 +380,39 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
       font-size: 12px;
       color: #64748b;
       margin-top: 2px;
-      max-width: 380px;
     }
 
     .status-txt {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: #16a34a;
 
       &.off {
-        color: #ef4444;
+        color: #64748b;
       }
+    }
+
+    .error-banner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      margin: 16px;
+      color: #991b1b;
+
+      .err-icon { color: #ef4444; font-size: 22px; width: 22px; height: 22px; }
+      .err-text { flex: 1; p { margin: 2px 0 0; font-size: 12px; color: #b91c1c; } }
     }
 
     .spinner-inline {
       margin-right: 6px;
     }
 
-    @media (max-width: 992px) {
-      .specialty-layout { grid-template-columns: 1fr; }
+    @media (max-width: 768px) {
+      .page-top-bar { flex-direction: column; align-items: flex-start; }
     }
   `],
 })
@@ -268,7 +421,10 @@ export class AdminSpecialtiesComponent implements OnInit {
   specialties: SpecialtyResponse[] = [];
   editingId: number | null = null;
   editMode = false;
+  isFormOpen = false;
   isLoading = false;
+  hasError = false;
+  errorMessage = '';
   isSaving = false;
   displayedColumns = ['id', 'name', 'status', 'actions'];
 
@@ -289,15 +445,27 @@ export class AdminSpecialtiesComponent implements OnInit {
 
   loadSpecialties(): void {
     this.isLoading = true;
-    this.specialtyService.getAll().subscribe({
+    this.hasError = false;
+    this.errorMessage = '';
+
+    this.specialtyService.getAllForAdmin().subscribe({
       next: (r) => {
         this.specialties = r.data ?? [];
         this.isLoading = false;
       },
-      error: () => {
+      error: (err) => {
         this.isLoading = false;
+        this.hasError = true;
+        this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải danh mục chuyên khoa.';
       },
     });
+  }
+
+  openAddForm(): void {
+    this.editMode = false;
+    this.editingId = null;
+    this.specialtyForm.reset();
+    this.isFormOpen = true;
   }
 
   startEdit(specialty: SpecialtyResponse): void {
@@ -307,9 +475,11 @@ export class AdminSpecialtiesComponent implements OnInit {
       name: specialty.name,
       description: specialty.description ?? '',
     });
+    this.isFormOpen = true;
   }
 
-  cancelEdit(): void {
+  cancelForm(): void {
+    this.isFormOpen = false;
     this.editMode = false;
     this.editingId = null;
     this.specialtyForm.reset();
@@ -331,7 +501,7 @@ export class AdminSpecialtiesComponent implements OnInit {
             duration: 3000,
             panelClass: 'success-snackbar',
           });
-          this.cancelEdit();
+          this.cancelForm();
           this.loadSpecialties();
         },
         error: (err: { error?: { message?: string } }) => {
@@ -344,11 +514,11 @@ export class AdminSpecialtiesComponent implements OnInit {
       this.specialtyService.create(req).subscribe({
         next: () => {
           this.isSaving = false;
-          this.specialtyForm.reset();
           this.snackBar.open('Tạo chuyên khoa mới thành công!', 'Đóng', {
             duration: 3000,
             panelClass: 'success-snackbar',
           });
+          this.cancelForm();
           this.loadSpecialties();
         },
         error: (err: { error?: { message?: string } }) => {

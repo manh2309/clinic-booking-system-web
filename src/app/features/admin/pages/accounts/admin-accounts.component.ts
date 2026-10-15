@@ -41,7 +41,22 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 
       <app-loading *ngIf="isLoading" message="Đang tải danh sách tài khoản..."></app-loading>
 
-      <mat-card class="table-card" *ngIf="!isLoading">
+      <!-- ERROR BANNER -->
+      <div class="error-banner" *ngIf="!isLoading && hasError">
+        <div class="error-content">
+          <mat-icon class="err-icon">error_outline</mat-icon>
+          <div class="err-text">
+            <strong>Không thể tải danh sách tài khoản</strong>
+            <p>{{ errorMessage }}</p>
+          </div>
+        </div>
+        <button mat-flat-button color="primary" (click)="load()">
+          <mat-icon>refresh</mat-icon>
+          <span>Thử lại</span>
+        </button>
+      </div>
+
+      <mat-card class="table-card" *ngIf="!isLoading && !hasError">
         <mat-card-content>
           <app-empty-state
             *ngIf="accounts.length === 0"
@@ -196,11 +211,49 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
         color: #ef4444;
       }
     }
+
+    .error-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 20px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      color: #991b1b;
+      margin-bottom: 20px;
+
+      .error-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .err-icon { color: #ef4444; font-size: 24px; width: 24px; height: 24px; }
+      .err-text { strong { font-size: 14px; } p { margin: 2px 0 0; font-size: 13px; color: #b91c1c; } }
+      button {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 38px;
+        mat-icon { font-size: 18px; width: 18px; height: 18px; }
+      }
+    }
+
+    @media (max-width: 640px) {
+      .error-banner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
   `],
 })
 export class AdminAccountsComponent implements OnInit {
   accounts: AdminAccountResponse[] = [];
   isLoading = false;
+  hasError = false;
+  errorMessage = '';
   displayedColumns = ['id', 'username', 'email', 'role', 'status'];
 
   constructor(
@@ -214,13 +267,17 @@ export class AdminAccountsComponent implements OnInit {
 
   load(): void {
     this.isLoading = true;
+    this.hasError = false;
+    this.errorMessage = '';
     this.adminService.getAllAccounts().subscribe({
       next: (r) => {
         this.accounts = r.data ?? [];
         this.isLoading = false;
       },
-      error: () => {
+      error: (err: { error?: { message?: string } }) => {
         this.isLoading = false;
+        this.hasError = true;
+        this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải danh sách tài khoản.';
       },
     });
   }
