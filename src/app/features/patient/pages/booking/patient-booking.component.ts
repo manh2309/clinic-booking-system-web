@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { clinicDate, clinicInstant } from '../../../../core/services/schedule-planning.service';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,7 +15,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } 
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { DoctorService } from '../../../../core/services/doctor.service';
 import { AppointmentService } from '../../../../core/services/appointment.service';
-import { DoctorResponse, SlotResponse } from '../../../../core/models/domain.model';
+import { DoctorResponse, SlotResponse, AvailableDateResponse } from '../../../../core/models/domain.model';
 import { PageHeaderComponent, BreadcrumbItem } from '../../../../shared/components/page-header/page-header.component';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
 
@@ -22,7 +24,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    FormsModule,
+    FormsModule, RouterLink,
     MatCardModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule,
     MatDatepickerModule, MatNativeDateModule,
@@ -82,6 +84,17 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
             <mat-card-title>Chọn ngày và giờ khám</mat-card-title>
           </mat-card-header>
           <mat-card-content>
+            <div class="available-days">
+              <strong>Ngày còn chỗ trong 30 ngày tới</strong>
+              <button mat-button (click)="loadAvailableDates()" [disabled]="isLoadingDates || isBooking">Làm mới ngày còn chỗ</button>
+              <p *ngIf="isLoadingDates" role="status">Đang tìm ngày khám...</p>
+              <p *ngIf="datesError" role="alert">{{datesError}} Bạn vẫn có thể chọn ngày bên dưới.</p>
+              <p *ngIf="!isLoadingDates && !datesError && !availableDates.length">Chưa có ngày còn chỗ trong khoảng này. Bạn có thể chọn ngày khác hoặc tìm bác sĩ khác.</p>
+              <div class="date-options"><button mat-stroked-button *ngFor="let day of availableDates" [disabled]="isBooking"
+                [class.date-option--selected]="isSelectedDay(day.date)" [attr.aria-pressed]="isSelectedDay(day.date)" (click)="chooseDate(day.date)">
+                {{dayLabel(day.date)}} · {{day.availableSlots}} chỗ
+              </button></div>
+            </div>
             <!-- Date picker -->
             <mat-form-field appearance="outline" class="date-picker">
               <mat-label>Chọn ngày</mat-label>
@@ -89,6 +102,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                 matInput
                 [matDatepicker]="picker"
                 [min]="minDate"
+                [disabled]="isBooking"
                 [(ngModel)]="selectedDate"
                 (dateChange)="onDateChange()"
                 placeholder="Chọn ngày khám"
@@ -101,13 +115,17 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
             <app-loading *ngIf="isLoadingSlots" [diameter]="32" message="Đang tải khung giờ..."></app-loading>
 
             <!-- Slots grid -->
-            <div class="slots-section" *ngIf="!isLoadingSlots && selectedDate">
+            <p *ngIf="slotsError" role="alert" class="booking-error">{{slotsError}}
+              <button mat-button (click)="onDateChange()" [disabled]="isBooking">Thử lại</button>
+            </p>
+            <div class="slots-section" *ngIf="!isLoadingSlots && !slotsError && selectedDate">
               <p class="slots-title" *ngIf="slots.length === 0">Không có khung giờ trống trong ngày này</p>
               <div class="slots-grid" *ngIf="slots.length > 0">
                 <button
                   *ngFor="let slot of slots"
                   class="slot-btn"
                   [class.slot-btn--selected]="selectedSlot?.id === slot.id"
+                  [disabled]="isBooking"
                   (click)="selectSlot(slot)"
                   mat-stroked-button
                 >
@@ -146,6 +164,12 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
     </div>
   `,
   styles: [`
+    :host {display:block;container-type:inline-size;}
+    @container (max-width:768px) { .booking-layout {grid-template-columns:1fr !important;} }
+    .available-days { margin: 12px 0 20px; }
+    .date-options {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;max-height:200px;overflow:auto;padding:2px;}
+    .date-option--selected {background:#e0f2fe;color:#0369a1;border-color:#0284c7;}
+    .booking-error {color:#b91c1c;}
     .booking-layout {
       display: grid;
       grid-template-columns: 360px 1fr;
@@ -275,21 +299,36 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
     }
 
     @media (max-width: 768px) {
-      .booking-layout { grid-template-columns: 1fr; }
+      :host {display:block;container-type:inline-size;}
+    @container (max-width:768px) { .booking-layout {grid-template-columns:1fr !important;} }
+    .available-days { margin: 12px 0 20px; }
+    .date-options {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;max-height:200px;overflow:auto;padding:2px;}
+    .date-option--selected {background:#e0f2fe;color:#0369a1;border-color:#0284c7;}
+    .booking-error {color:#b91c1c;}
+    .booking-layout { grid-template-columns: 1fr; }
     }
   `],
 })
-export class PatientBookingComponent implements OnInit {
+export class PatientBookingComponent implements OnInit, OnDestroy {
   doctor: DoctorResponse | null = null;
   slots: SlotResponse[] = [];
   selectedSlot: SlotResponse | null = null;
   selectedDate: Date | null = null;
-  minDate = new Date();
+  minDate = this.dateFromKey(clinicDate());
+  availableDates: AvailableDateResponse[] = [];
+  isLoadingDates = false;
+  datesError = '';
+  slotsError = '';
+  private datesRequest = 0;
+  private selectionVersion = 0;
+  private datesSubscription?: Subscription;
   isLoadingDoctor = false;
   hasDoctorError = false;
   doctorErrorMessage = '';
   isLoadingSlots = false;
   isBooking = false;
+  private slotRequest = 0;
+  private slotSubscription?: Subscription;
 
   breadcrumbs: BreadcrumbItem[] = [
     { label: 'Bác sĩ', route: '/patient/doctors' },
@@ -323,6 +362,7 @@ export class PatientBookingComponent implements OnInit {
       next: (res) => {
         this.doctor = res.data;
         this.isLoadingDoctor = false;
+        this.loadAvailableDates(true);
       },
       error: (err: { error?: { message?: string } }) => {
         this.isLoadingDoctor = false;
@@ -332,30 +372,90 @@ export class PatientBookingComponent implements OnInit {
     });
   }
 
+  loadAvailableDates(autoSelect = false): void {
+    if (!this.doctor || this.isBooking) return;
+    const request = ++this.datesRequest;
+    const selection = this.selectionVersion;
+    this.datesSubscription?.unsubscribe();
+    this.isLoadingDates = true;
+    this.datesError = '';
+    this.datesSubscription = this.doctorService.getAvailableDates(this.doctor.id, clinicDate()).subscribe({
+      next: res => {
+        if (request !== this.datesRequest) return;
+        this.availableDates = res.data;
+        this.isLoadingDates = false;
+        if (autoSelect && selection === this.selectionVersion && !this.isBooking && res.data.length) this.chooseDate(res.data[0].date);
+      },
+      error: () => {
+        if (request !== this.datesRequest) return;
+        this.isLoadingDates = false;
+        this.datesError = 'Không tải được danh sách ngày còn chỗ.';
+      }
+    });
+  }
+
+  chooseDate(date: string): void {
+    if (this.isBooking) return;
+    this.selectedDate = this.dateFromKey(date);
+    this.onDateChange();
+  }
+
+  dayLabel(date: string): string {
+    const day = this.dateFromKey(date);
+    return `${['CN','T2','T3','T4','T5','T6','T7'][day.getDay()]}, ${date.slice(8,10)}/${date.slice(5,7)}`;
+  }
+  isSelectedDay(date: string): boolean { return this.selectedDate !== null && this.formatDate(this.selectedDate) === date; }
+  private dateFromKey(value: string): Date {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
   onDateChange(): void {
-    if (!this.selectedDate || !this.doctor) return;
+    if (this.isBooking) return;
+    ++this.selectionVersion;
+    this.slotsError = '';
+    const request = ++this.slotRequest;
+    this.slotSubscription?.unsubscribe();
     this.selectedSlot = null;
+    this.slots = [];
+    this.isLoadingSlots = false;
+    if (!this.selectedDate || !this.doctor) return;
     this.isLoadingSlots = true;
     const dateStr = this.formatDate(this.selectedDate);
-    this.doctorService.getAvailableSlots(this.doctor.id, dateStr).subscribe({
+    this.slotSubscription = this.doctorService.getAvailableSlots(this.doctor.id, dateStr).subscribe({
       next: (res) => {
+        // Response ngày cũ không được ghi đè slot của ngày đang chọn.
+        if (request !== this.slotRequest) return;
         this.slots = res.data ?? [];
+        this.availableDates = this.availableDates.map(day => day.date === dateStr ? {...day, availableSlots: this.slots.length} : day).filter(day => day.availableSlots > 0);
         this.isLoadingSlots = false;
       },
       error: (err: { error?: { message?: string } }) => {
+        if (request !== this.slotRequest) return;
         this.isLoadingSlots = false;
         this.slots = [];
-        this.snackBar.open(err?.error?.message ?? 'Không thể tải danh sách khung giờ.', 'Đóng', { duration: 4000 });
+        this.slotsError = 'Không tải được khung giờ khám. Vui lòng thử lại.';
       },
     });
   }
 
   selectSlot(slot: SlotResponse): void {
+    if (this.isBooking || this.isLoadingSlots || !this.slots.some(item => item.id === slot.id) || clinicInstant(slot.startAt) <= Date.now()) return;
     this.selectedSlot = slot;
   }
 
   confirmBooking(): void {
-    if (!this.selectedSlot) return;
+    if (!this.selectedSlot || !this.selectedDate || this.isLoadingSlots || this.isBooking) return;
+    if (this.selectedSlot.startAt.slice(0,10) !== this.formatDate(this.selectedDate)) {
+      this.onDateChange();
+      this.snackBar.open('Ngày khám đã thay đổi. Vui lòng chọn lại khung giờ.', 'Đóng', {duration:3000});
+      return;
+    }
+    if (!this.slots.some(slot => slot.id === this.selectedSlot?.id) || clinicInstant(this.selectedSlot.startAt) <= Date.now()) {
+      this.onDateChange();
+      this.snackBar.open('Khung giờ không còn hợp lệ. Hãy chọn lại giờ khám.', 'Đóng', {duration:3000});
+      return;
+    }
     this.isBooking = true;
     this.appointmentService.book({ slotId: this.selectedSlot.id }).subscribe({
       next: () => {
@@ -376,6 +476,7 @@ export class PatientBookingComponent implements OnInit {
         );
         // Cập nhật lại danh sách slot để xóa bỏ slot đã bị chiếm
         this.onDateChange();
+        this.loadAvailableDates();
       },
     });
   }
@@ -385,5 +486,12 @@ export class PatientBookingComponent implements OnInit {
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  }
+
+  ngOnDestroy(): void {
+    ++this.slotRequest;
+    ++this.datesRequest;
+    this.datesSubscription?.unsubscribe();
+    this.slotSubscription?.unsubscribe();
   }
 }

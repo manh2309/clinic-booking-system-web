@@ -7,6 +7,8 @@ export type StatusType =
   | 'confirmed'
   | 'completed'
   | 'cancelled'
+  | 'expired'
+  | 'no-show'
   | 'active'
   | 'inactive';
 
@@ -15,6 +17,8 @@ const STATUS_CONFIG: Record<StatusType, { label: string; cssClass: string }> = {
   confirmed: { label: 'Đã xác nhận',  cssClass: 'chip-confirmed' },
   completed: { label: 'Hoàn thành',   cssClass: 'chip-completed' },
   cancelled: { label: 'Đã hủy',       cssClass: 'chip-cancelled' },
+  expired:   { label: 'Hết hạn',      cssClass: 'chip-inactive' },
+  'no-show': { label: 'Vắng mặt',     cssClass: 'chip-cancelled' },
   active:    { label: 'Hoạt động',    cssClass: 'chip-active' },
   inactive:  { label: 'Tạm ngưng',    cssClass: 'chip-inactive' },
 };

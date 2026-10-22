@@ -5,8 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AppointmentService } from '../../../../core/services/appointment.service';
-import { ScheduleService } from '../../../../core/services/schedule.service';
-import { AppointmentResponse, ScheduleResponse } from '../../../../core/models/domain.model';
+import { AppointmentResponse } from '../../../../core/models/domain.model';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { StatusChipComponent, StatusType } from '../../../../shared/components/status-chip/status-chip.component';
@@ -45,7 +44,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
         <div class="top-actions">
           <a mat-flat-button color="primary" routerLink="/doctor/schedule" class="btn-top">
             <mat-icon>calendar_month</mat-icon>
-            <span>Đăng ký ca khám</span>
+            <span>Xem lịch làm việc</span>
           </a>
           <a mat-stroked-button routerLink="/doctor/appointments" class="btn-top-outline">
             <mat-icon>pending_actions</mat-icon>
@@ -61,9 +60,9 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
             <div class="stat-icon"><mat-icon>pending_actions</mat-icon></div>
             <div class="stat-info">
               <div class="stat-value">
-                <span *ngIf="!isLoading && !hasError">{{ pendingCount }}</span>
-                <span *ngIf="isLoading" class="stat-loading-val">...</span>
-                <span *ngIf="hasError" class="stat-error-val" title="Không thể tải số liệu">--</span>
+                <span *ngIf="!statsLoading && !statsError">{{ pendingCount }}</span>
+                <span *ngIf="statsLoading" class="stat-loading-val">...</span>
+                <span *ngIf="statsError" class="stat-error-val" title="Không thể tải số liệu">--</span>
               </div>
               <div class="stat-label">Chờ xác nhận</div>
             </div>
@@ -75,9 +74,9 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
             <div class="stat-icon"><mat-icon>event_available</mat-icon></div>
             <div class="stat-info">
               <div class="stat-value">
-                <span *ngIf="!isLoading && !hasError">{{ confirmedCount }}</span>
-                <span *ngIf="isLoading" class="stat-loading-val">...</span>
-                <span *ngIf="hasError" class="stat-error-val" title="Không thể tải số liệu">--</span>
+                <span *ngIf="!statsLoading && !statsError">{{ confirmedCount }}</span>
+                <span *ngIf="statsLoading" class="stat-loading-val">...</span>
+                <span *ngIf="statsError" class="stat-error-val" title="Không thể tải số liệu">--</span>
               </div>
               <div class="stat-label">Đã xác nhận</div>
             </div>
@@ -89,9 +88,9 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
             <div class="stat-icon"><mat-icon>check_circle</mat-icon></div>
             <div class="stat-info">
               <div class="stat-value">
-                <span *ngIf="!isLoading && !hasError">{{ completedCount }}</span>
-                <span *ngIf="isLoading" class="stat-loading-val">...</span>
-                <span *ngIf="hasError" class="stat-error-val" title="Không thể tải số liệu">--</span>
+                <span *ngIf="!statsLoading && !statsError">{{ completedCount }}</span>
+                <span *ngIf="statsLoading" class="stat-loading-val">...</span>
+                <span *ngIf="statsError" class="stat-error-val" title="Không thể tải số liệu">--</span>
               </div>
               <div class="stat-label">Đã hoàn thành</div>
             </div>
@@ -103,25 +102,28 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
             <div class="stat-icon"><mat-icon>schedule</mat-icon></div>
             <div class="stat-info">
               <div class="stat-value">
-                <span *ngIf="!schedulesLoading && !schedulesError">{{ schedules.length }}</span>
-                <span *ngIf="schedulesLoading" class="stat-loading-val">...</span>
-                <span *ngIf="schedulesError" class="stat-error-val" title="Không thể tải số liệu">--</span>
+                <span *ngIf="!statsLoading && !statsError">{{ openScheduleCount }}</span>
+                <span *ngIf="statsLoading" class="stat-loading-val">...</span>
+                <span *ngIf="statsError" class="stat-error-val" title="Không thể tải số liệu">--</span>
               </div>
-              <div class="stat-label">Ca khám đã tạo</div>
+              <div class="stat-label">Ca khám chưa kết thúc</div>
             </div>
           </mat-card-content>
         </mat-card>
       </div>
 
+      <p *ngIf="statsError" role="alert">Không thể tải thống kê.
+        <button mat-button (click)="loadData()">Thử lại</button>
+      </p>
       <!-- RECENT APPOINTMENTS -->
       <mat-card class="recent-card">
         <div class="card-header-bar">
           <div>
             <h2 class="card-title">Lịch hẹn gần đây</h2>
-            <p class="card-subtitle">Các ca đăng ký khám mới nhất của bệnh nhân</p>
+            <p class="card-subtitle">Lịch hẹn theo giờ khám, từ mới đến cũ</p>
           </div>
           <a mat-stroked-button color="primary" routerLink="/doctor/appointments" class="view-all-btn">
-            <span>Xem tất cả ({{ totalAppointments }})</span>
+            <span>Xem tất cả<span *ngIf="!isLoading && !hasError"> ({{ totalAppointments }})</span></span>
             <mat-icon>arrow_forward</mat-icon>
           </a>
         </div>
@@ -161,7 +163,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
               <div class="appt-patient">
                 <div class="patient-avatar"><mat-icon>person</mat-icon></div>
                 <div class="patient-info">
-                  <span class="patient-name">Mã bệnh nhân #{{ a.patientAccountId }}</span>
+                  <span class="patient-name">{{ a.patientFullName || ('Mã bệnh nhân #' + a.patientAccountId) }}</span>
                   <span class="patient-desc">Phiếu hẹn khám số #{{ a.id }}</span>
                 </div>
               </div>
@@ -434,7 +436,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 })
 export class DoctorDashboardComponent implements OnInit {
   recentAppointments: AppointmentResponse[] = [];
-  schedules: ScheduleResponse[] = [];
+  openScheduleCount = 0;
   totalAppointments = 0;
   pendingCount = 0;
   confirmedCount = 0;
@@ -442,12 +444,11 @@ export class DoctorDashboardComponent implements OnInit {
   isLoading = false;
   hasError = false;
   errorMessage = '';
-  schedulesLoading = false;
-  schedulesError = false;
+  statsLoading = false;
+  statsError = false;
 
   constructor(
     private appointmentService: AppointmentService,
-    private scheduleService: ScheduleService,
     private authService: AuthService
   ) {}
 
@@ -462,14 +463,11 @@ export class DoctorDashboardComponent implements OnInit {
     this.hasError = false;
     this.errorMessage = '';
 
-    this.appointmentService.getDoctorAppointments(0, 50).subscribe({
+    this.appointmentService.getDoctorAppointments(0, 5).subscribe({
       next: (res) => {
         const all = res.data?.content ?? [];
-        this.totalAppointments = all.length;
+        this.totalAppointments = res.data.totalElements;
         this.recentAppointments = all.slice(0, 5);
-        this.pendingCount   = all.filter(a => a.status === 'PENDING').length;
-        this.confirmedCount = all.filter(a => a.status === 'CONFIRMED').length;
-        this.completedCount = all.filter(a => a.status === 'COMPLETED').length;
         this.isLoading = false;
       },
       error: (err) => {
@@ -479,16 +477,19 @@ export class DoctorDashboardComponent implements OnInit {
       },
     });
 
-    this.schedulesLoading = true;
-    this.schedulesError = false;
-    this.scheduleService.getMySchedules().subscribe({
+    this.statsLoading = true;
+    this.statsError = false;
+    this.appointmentService.getDoctorSummary().subscribe({
       next: (res) => {
-        this.schedules = res.data ?? [];
-        this.schedulesLoading = false;
+        this.pendingCount = res.data.pendingCount;
+        this.confirmedCount = res.data.confirmedCount;
+        this.completedCount = res.data.completedCount;
+        this.openScheduleCount = res.data.openScheduleCount;
+        this.statsLoading = false;
       },
       error: () => {
-        this.schedulesLoading = false;
-        this.schedulesError = true;
+        this.statsLoading = false;
+        this.statsError = true;
       },
     });
   }
@@ -496,7 +497,7 @@ export class DoctorDashboardComponent implements OnInit {
   mapStatus(status: string): StatusType {
     const map: Record<string, StatusType> = {
       PENDING: 'pending', CONFIRMED: 'confirmed',
-      COMPLETED: 'completed', CANCELED: 'cancelled',
+      COMPLETED: 'completed', CANCELED: 'cancelled', EXPIRED: 'expired', NO_SHOW: 'no-show',
     };
     return map[status] ?? 'pending';
   }

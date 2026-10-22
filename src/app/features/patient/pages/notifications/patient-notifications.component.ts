@@ -1,114 +1,62 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { NgIf, NgFor, DatePipe } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { NotificationService, NotificationResponse } from '../../../../core/services/notification.service';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 
 @Component({
-  selector: 'app-patient-notifications',
-  standalone: true,
-  imports: [MatCardModule, MatIconModule, PageHeaderComponent],
-  template: `
-    <div class="fade-in">
-      <app-page-header
-        title="Thông báo"
-        subtitle="Hệ thống thông báo nhắc lịch và cập nhật trạng thái ca khám"
-      ></app-page-header>
-
-      <mat-card class="in-dev-card">
+  selector:'app-patient-notifications', standalone:true,
+  imports:[NgIf, NgFor, DatePipe, RouterLink, MatButtonModule, MatCardModule, MatPaginatorModule, PageHeaderComponent, LoadingComponent, EmptyStateComponent],
+  template:`<app-page-header title="Thông báo" subtitle="Cập nhật trạng thái các lịch hẹn của bạn"></app-page-header>
+    <button mat-stroked-button (click)="load()" [disabled]="loading">Làm mới</button>
+    <app-loading *ngIf="loading" message="Đang tải thông báo..."></app-loading>
+    <p *ngIf="!loading && error" role="alert">{{ error }} <button mat-button (click)="load()">Thử lại</button></p>
+    <p *ngIf="actionError" role="alert">{{ actionError }}</p>
+    <ng-container *ngIf="!loading && !error">
+      <app-empty-state *ngIf="!items.length" icon="notifications_none" title="Chưa có thông báo" message="Các thay đổi lịch hẹn sẽ xuất hiện tại đây."></app-empty-state>
+      <mat-card *ngFor="let item of items" class="notification-card" [class.unread]="!item.read">
         <mat-card-content>
-          <div class="in-dev-content">
-            <div class="in-dev-icon-wrapper">
-              <mat-icon>notifications</mat-icon>
-            </div>
-            <span class="in-dev-badge">Tính năng đang phát triển</span>
-            <h2 class="in-dev-title">Hệ thống Thông báo trực tuyến</h2>
-            <p class="in-dev-desc">
-              Chức năng tiếp nhận thông báo xác nhận ca khám, nhắc lịch hẹn và cập nhật trạng thái từ bác sĩ đang trong giai đoạn phát triển và sẽ sớm được ra mắt.
-            </p>
-            <div class="planned-items">
-              <div class="item">
-                <mat-icon class="check">pending</mat-icon>
-                <span>Nhận thông báo khi bác sĩ xác nhận hoặc hoàn thành lịch khám</span>
-              </div>
-              <div class="item">
-                <mat-icon class="check">pending</mat-icon>
-                <span>Nhắc lịch hẹn khám trước giờ diễn ra ca khám</span>
-              </div>
-            </div>
+          <h2>{{ item.title }} <span *ngIf="!item.read" class="unread-label">Chưa đọc</span></h2>
+          <p>{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</p><p>{{ item.message }}</p>
+          <div class="actions">
+            <button mat-button *ngIf="!item.read" [disabled]="reading.has(item.id)" (click)="markRead(item)">Đánh dấu đã đọc</button>
+            <a mat-button *ngIf="item.appointmentId" [routerLink]="destination(item)">Xem {{ item.type === 'APPOINTMENT_COMPLETED' && !isDoctor ? 'kết quả khám' : 'lịch hẹn' }}</a>
           </div>
         </mat-card-content>
       </mat-card>
-    </div>
-  `,
-  styles: [`
-    .in-dev-card {
-      border-radius: 14px !important;
-      border: 1px dashed #cbd5e1 !important;
-      background: #f8fafc !important;
-      box-shadow: none !important;
-    }
-    .in-dev-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 48px 24px;
-      text-align: center;
-      max-width: 540px;
-      margin: 0 auto;
-    }
-    .in-dev-icon-wrapper {
-      width: 56px;
-      height: 56px;
-      border-radius: 14px;
-      background: #e0f2fe;
-      color: #0284c7;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-      mat-icon { font-size: 28px; width: 28px; height: 28px; }
-    }
-    .in-dev-badge {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 600;
-      color: #0369a1;
-      background: #e0f2fe;
-      padding: 3px 10px;
-      border-radius: 9999px;
-      margin-bottom: 8px;
-    }
-    .in-dev-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #0f172a;
-      margin: 0 0 8px;
-    }
-    .in-dev-desc {
-      font-size: 13px;
-      color: #64748b;
-      line-height: 1.5;
-      margin: 0 0 20px;
-    }
-    .planned-items {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      text-align: left;
-      width: 100%;
-      background: #ffffff;
-      padding: 16px;
-      border-radius: 10px;
-      border: 1px solid #e2e8f0;
-    }
-    .item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: #475569;
-      .check { font-size: 18px; width: 18px; height: 18px; color: #94a3b8; }
-    }
-  `],
+      <mat-paginator *ngIf="total > pageSize" [length]="total" [pageIndex]="page" [pageSize]="pageSize" (page)="changePage($event)"></mat-paginator>
+    </ng-container>`,
+  styles:[`.notification-card{margin-top:12px;overflow-wrap:anywhere;} .unread{border-left:3px solid #0284c7;} h2{font-size:17px;} .unread-label{font-size:12px;color:#0369a1;} .actions{display:flex;flex-wrap:wrap;gap:8px;}`],
 })
-export class PatientNotificationsComponent {}
+export class PatientNotificationsComponent implements OnInit {
+  items: NotificationResponse[] = [];
+  loading = false; error = ''; actionError = ''; page = 0; pageSize = 10; total = 0;
+  reading = new Set<number>();
+  readonly isDoctor: boolean;
+  constructor(private service: NotificationService, router: Router) { this.isDoctor = router.url.startsWith('/doctor'); }
+  ngOnInit(): void { this.load(); }
+  load(): void {
+    this.loading = true; this.error = '';
+    this.service.getMine(this.page, this.pageSize).subscribe({
+      next: res => { this.items = res.data.content; this.total = res.data.totalElements; this.loading = false; this.service.changed.next(); },
+      error: () => { this.loading = false; this.error = 'Không thể tải thông báo. Vui lòng thử lại.'; },
+    });
+  }
+  markRead(item: NotificationResponse): void {
+    if (item.read || this.reading.has(item.id)) return;
+    this.reading.add(item.id); this.actionError = '';
+    this.service.markRead(item.id).subscribe({
+      next: res => { Object.assign(item, res.data); this.reading.delete(item.id); },
+      error: () => { this.reading.delete(item.id); this.actionError = 'Chưa đánh dấu được thông báo. Vui lòng thử lại.'; },
+    });
+  }
+  destination(item: NotificationResponse): string {
+    return this.isDoctor ? '/doctor/appointments' : item.type === 'APPOINTMENT_COMPLETED' ? '/patient/medical-records' : '/patient/appointments';
+  }
+  changePage(event: PageEvent): void { this.page = event.pageIndex; this.pageSize = event.pageSize; this.load(); }
+}

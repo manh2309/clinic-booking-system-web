@@ -141,6 +141,7 @@ export const routes: Routes = [
           ),
         title: 'Dashboard — Clinic Booking',
       },
+      {path:'leaves',loadComponent:()=>import('./features/doctor/pages/leaves/doctor-leaves.component').then(m=>m.DoctorLeavesComponent),title:'Đơn nghỉ — Clinic Booking'},
       {
         path: 'schedule',
         loadComponent: () =>
@@ -156,6 +157,11 @@ export const routes: Routes = [
             (m) => m.DoctorAppointmentsComponent
           ),
         title: 'Lịch hẹn — Clinic Booking',
+      },
+      {
+        path: 'notifications',
+        loadComponent: () => import('./features/patient/pages/notifications/patient-notifications.component').then(m => m.PatientNotificationsComponent),
+        title: 'Thông báo — Clinic Booking',
       },
       {
         path: 'profile',
@@ -193,6 +199,7 @@ export const routes: Routes = [
           ),
         title: 'Dashboard Admin — Clinic Booking',
       },
+      {path:'planning',loadComponent:()=>import('./features/admin/pages/planning/admin-planning.component').then(m=>m.AdminPlanningComponent),title:'Lịch tuần và duyệt nghỉ — Clinic Booking'},
       {
         path: 'accounts',
         loadComponent: () =>

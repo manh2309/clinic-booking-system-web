@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { NgIf, NgFor } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { AppointmentService } from '../../../../core/services/appointment.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { SpecialtyService } from '../../../../core/services/specialty.service';
 import { DoctorService } from '../../../../core/services/doctor.service';
@@ -110,8 +111,12 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
               <span class="stat-badge">Lịch hẹn</span>
               <div class="stat-icon-wrapper"><mat-icon>event_note</mat-icon></div>
             </div>
-            <div class="stat-number">24/7</div>
-            <div class="stat-title">Tiếp nhận lịch hẹn trực tuyến</div>
+            <div class="stat-number">
+              <span *ngIf="!appointmentLoading && !appointmentError">{{ appointmentCount }}</span>
+              <span *ngIf="appointmentLoading">...</span><span *ngIf="appointmentError" title="Không thể tải số liệu">--</span>
+            </div>
+            <button mat-button *ngIf="appointmentError" (click)="loadStats()">Thử lại</button>
+            <div class="stat-title">Tổng lịch hẹn trong hệ thống</div>
             <div class="stat-footer">
               <a routerLink="/admin/appointments" class="stat-link">Giám sát lịch hẹn →</a>
             </div>
@@ -461,6 +466,9 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
   `],
 })
 export class AdminDashboardComponent implements OnInit {
+  appointmentCount: number | null = null;
+  appointmentLoading = true;
+  appointmentError = false;
   accountCount: number | null = null;
   doctorCount: number | null = null;
   specialtyCount: number | null = null;
@@ -474,6 +482,7 @@ export class AdminDashboardComponent implements OnInit {
   specialtyError = false;
 
   constructor(
+    private appointmentService: AppointmentService,
     private adminService: AdminService,
     private specialtyService: SpecialtyService,
     private doctorService: DoctorService
@@ -484,6 +493,12 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   loadStats(): void {
+    this.appointmentLoading = true;
+    this.appointmentError = false;
+    this.appointmentService.getAdminAppointments(0, 1).subscribe({
+      next: r => { this.appointmentCount = r.data.totalElements; this.appointmentLoading = false; },
+      error: () => { this.appointmentError = true; this.appointmentLoading = false; },
+    });
     this.accountLoading = true;
     this.accountError = false;
     this.adminService.getAllAccounts().subscribe({

@@ -1,3 +1,5 @@
+import { WorkspaceMenuComponent } from '../../shared/components/workspace-menu/workspace-menu.component';
+import { NotificationBellComponent } from '../../shared/components/notification-bell/notification-bell.component';
 import { Component, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -21,6 +23,8 @@ interface SidenavItem {
   selector: 'app-doctor-layout',
   standalone: true,
   imports: [
+    WorkspaceMenuComponent,
+    NotificationBellComponent,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
@@ -91,10 +95,12 @@ interface SidenavItem {
         <!-- TOP HEADER -->
         <header class="main-header">
           <div class="header-left">
+            <app-workspace-menu [items]="navItems"></app-workspace-menu>
             <span class="header-breadcrumb">Bàn làm việc bác sĩ</span>
           </div>
 
           <div class="header-actions">
+            <app-notification-bell route="/doctor/notifications"></app-notification-bell>
             <!-- User Chip Button -->
             <button
               type="button"
@@ -430,7 +436,10 @@ interface SidenavItem {
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main-wrapper { margin-left: 0; }
-      .main-header { padding: 0 16px; }
+      .main-header { padding: 0 12px; gap:8px; }
+      .header-left { display:flex; align-items:center; min-width:0; }
+      .header-breadcrumb { display:none; }
+      .header-actions { gap:4px; }
       .main-content { padding: 20px 16px; }
     }
   `],
@@ -441,7 +450,9 @@ export class DoctorLayoutComponent implements OnInit {
   readonly navItems: SidenavItem[] = [
     { label: 'Tổng quan',     route: '/doctor/dashboard',    icon: 'dashboard' },
     { label: 'Lịch làm việc', route: '/doctor/schedule',     icon: 'calendar_month' },
+    {label:'Đơn nghỉ',route:'/doctor/leaves',icon:'event_busy'},
     { label: 'Lịch hẹn',      route: '/doctor/appointments', icon: 'pending_actions' },
+    { label: 'Thông báo', route: '/doctor/notifications', icon: 'notifications' },
     { label: 'Hồ sơ',         route: '/doctor/profile',      icon: 'badge' },
   ];
 

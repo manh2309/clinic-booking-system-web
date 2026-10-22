@@ -59,12 +59,16 @@ export interface ScheduleResponse {
   startAt: string;
   endAt: string;
   slots?: SlotResponse[];
+  doctorAvailable?: boolean;
+  active: boolean;
 }
 
 export interface SlotResponse {
   id: number;
   startAt: string;
   endAt: string;
+  status?: 'AVAILABLE' | 'BOOKED' | 'BLOCKED';
+  blockReason?: 'PENDING_LEAVE' | 'APPROVED_LEAVE' | null;
 }
 
 export interface CreateScheduleRequest {
@@ -73,7 +77,7 @@ export interface CreateScheduleRequest {
 }
 
 /** Lịch hẹn */
-export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELED';
+export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELED' | 'EXPIRED' | 'NO_SHOW';
 
 export interface AppointmentResponse {
   id: number;
@@ -81,6 +85,9 @@ export interface AppointmentResponse {
   doctorId: number;
   doctorName?: string;
   patientAccountId?: number;
+  patientFullName?: string;
+  patientPhone?: string;
+  statusReason?: string;
   startAt: string;
   endAt: string;
 }
@@ -95,20 +102,20 @@ export interface UpdateAppointmentStatusRequest {
 
 /** Hồ sơ bệnh nhân */
 export interface PatientProfileResponse {
-  patientProfileId?: number;
-  fullName?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
+  patientProfileId?: number | null;
+  fullName?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
   accountId?: number;
 }
 
 export interface PatientProfileRequest {
   fullName: string;
-  dateOfBirth?: string;
-  gender?: string;
+  dateOfBirth?: string | null;
+  gender?: string | null;
   email: string;
   phone?: string;
   address?: string;
@@ -130,4 +137,9 @@ export interface AdminAccountResponse {
 export interface RoleResponse {
   roleId: number;
   roleName: string;
+}
+
+export interface AvailableDateResponse {
+  date: string;
+  availableSlots: number;
 }

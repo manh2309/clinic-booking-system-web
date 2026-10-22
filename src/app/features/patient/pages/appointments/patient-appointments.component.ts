@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,6 +20,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
   selector: 'app-patient-appointments',
   standalone: true,
   imports: [
+    RouterLink,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -51,7 +52,6 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
           (click)="setStatusFilter('ALL')"
         >
           <span>Tất cả</span>
-          <span class="count-pill">{{ appointments.length }}</span>
         </button>
 
         <button
@@ -89,6 +89,8 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
         >
           <span>Đã hủy</span>
         </button>
+        <button type="button" class="tab-btn" [class.active]="selectedStatusFilter === 'EXPIRED'" (click)="setStatusFilter('EXPIRED')">Hết hạn</button>
+        <button type="button" class="tab-btn" [class.active]="selectedStatusFilter === 'NO_SHOW'" (click)="setStatusFilter('NO_SHOW')">Vắng mặt</button>
       </div>
 
       <!-- LOADING -->
@@ -153,12 +155,13 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
                 <mat-icon>info</mat-icon>
                 <span>Vui lòng đến trước giờ hẹn 15 phút để hoàn tất thủ tục tiếp đón.</span>
               </div>
+              <p *ngIf="appt.statusReason">{{ appt.statusReason }}</p>
             </div>
 
             <!-- Right Action Block -->
             <div class="ticket-actions">
               <button
-                *ngIf="canCancel(appt.status)"
+                *ngIf="canCancel(appt)"
                 mat-stroked-button
                 color="warn"
                 (click)="cancelAppointment(appt)"
@@ -168,6 +171,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
                 <span>Hủy lịch hẹn</span>
               </button>
 
+              <a mat-button *ngIf="appt.status === 'COMPLETED'" routerLink="/patient/medical-records">Kết quả khám</a>
               <button
                 *ngIf="appt.status === 'COMPLETED' || appt.status === 'CANCELED'"
                 mat-flat-button
@@ -483,7 +487,8 @@ export class PatientAppointmentsComponent implements OnInit {
     this.hasError = false;
     this.errorMessage = '';
 
-    this.appointmentService.getMine(this.currentPage, this.pageSize).subscribe({
+    const status = this.selectedStatusFilter === 'ALL' ? undefined : this.selectedStatusFilter;
+    this.appointmentService.getMine(this.currentPage, this.pageSize, status).subscribe({
       next: (res) => {
         this.appointments = res.data?.content ?? [];
         this.totalElements = res.data?.totalElements ?? 0;
@@ -500,17 +505,13 @@ export class PatientAppointmentsComponent implements OnInit {
 
   setStatusFilter(status: 'ALL' | AppointmentStatus): void {
     this.selectedStatusFilter = status;
-    this.applyFilter();
+    this.currentPage = 0;
+    this.loadAppointments();
   }
 
   applyFilter(): void {
-    if (this.selectedStatusFilter === 'ALL') {
-      this.filteredAppointments = [...this.appointments];
-    } else {
-      this.filteredAppointments = this.appointments.filter(
-        (a) => a.status === this.selectedStatusFilter
-      );
-    }
+    // Bộ lọc chạy ở máy chủ để tổng số và phân trang cùng một tập dữ liệu.
+    this.filteredAppointments = [...this.appointments];
   }
 
   onPageChange(event: PageEvent): void {
@@ -519,8 +520,8 @@ export class PatientAppointmentsComponent implements OnInit {
     this.loadAppointments();
   }
 
-  canCancel(status: AppointmentStatus): boolean {
-    return status === 'PENDING' || status === 'CONFIRMED';
+  canCancel(appt: AppointmentResponse): boolean {
+    return (appt.status === 'PENDING' || appt.status === 'CONFIRMED') && new Date(appt.startAt).getTime() > Date.now();
   }
 
   mapStatus(status: AppointmentStatus): StatusType {
@@ -529,6 +530,8 @@ export class PatientAppointmentsComponent implements OnInit {
       case 'CONFIRMED': return 'confirmed';
       case 'COMPLETED': return 'completed';
       case 'CANCELED':  return 'cancelled';
+      case 'EXPIRED': return 'expired';
+      case 'NO_SHOW': return 'no-show';
       default:          return 'pending';
     }
   }

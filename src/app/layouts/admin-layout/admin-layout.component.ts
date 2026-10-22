@@ -1,3 +1,4 @@
+import { WorkspaceMenuComponent } from '../../shared/components/workspace-menu/workspace-menu.component';
 import { Component, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -21,6 +22,7 @@ interface SidenavItem {
   selector: 'app-admin-layout',
   standalone: true,
   imports: [
+    WorkspaceMenuComponent,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
@@ -91,6 +93,7 @@ interface SidenavItem {
         <!-- TOP HEADER -->
         <header class="main-header">
           <div class="header-left">
+            <app-workspace-menu [items]="navItems"></app-workspace-menu>
             <span class="header-breadcrumb">Hệ thống quản trị phòng khám</span>
           </div>
 
@@ -426,7 +429,10 @@ interface SidenavItem {
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main-wrapper { margin-left: 0; }
-      .main-header { padding: 0 16px; }
+      .main-header { padding: 0 12px; gap:8px; }
+      .header-left { display:flex; align-items:center; min-width:0; }
+      .header-breadcrumb { display:none; }
+      .header-actions { gap:4px; }
       .main-content { padding: 20px 16px; }
     }
   `],
@@ -437,6 +443,7 @@ export class AdminLayoutComponent implements OnInit {
   readonly navItems: SidenavItem[] = [
     { label: 'Tổng quan',    route: '/admin/dashboard',    icon: 'dashboard' },
     { label: 'Tài khoản',    route: '/admin/accounts',     icon: 'manage_accounts' },
+    {label:'Lịch tuần / Nghỉ',route:'/admin/planning',icon:'calendar_month'},
     { label: 'Bác sĩ',       route: '/admin/doctors',      icon: 'medical_services' },
     { label: 'Chuyên khoa',  route: '/admin/specialties',  icon: 'local_hospital' },
     { label: 'Lịch hẹn',     route: '/admin/appointments', icon: 'event_note' },

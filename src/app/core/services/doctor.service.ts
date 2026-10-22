@@ -7,6 +7,7 @@ import {
   DoctorResponse,
   SpecialtyResponse,
   SlotResponse,
+  AvailableDateResponse,
 } from '../models/domain.model';
 
 export interface DoctorSearchParams {
@@ -22,6 +23,10 @@ export class DoctorService {
   private readonly adminUrl = `${environment.apiBaseUrl}/admin/doctors`;
 
   constructor(private http: HttpClient) {}
+
+  getMine(): Observable<ApiResponse<DoctorResponse>> {
+    return this.http.get<ApiResponse<DoctorResponse>>(`${this.baseUrl}/me`);
+  }
 
   /** GET /admin/doctors?page=0&size=20 (admin only, trả cả bác sĩ active và inactive) */
   getAllForAdmin(page: number = 0, size: number = 20): Observable<ApiResponse<PageResponse<DoctorResponse>>> {
@@ -44,6 +49,12 @@ export class DoctorService {
   /** GET /doctors/{id} */
   getById(id: number): Observable<ApiResponse<DoctorResponse>> {
     return this.http.get<ApiResponse<DoctorResponse>>(`${this.baseUrl}/${id}`);
+  }
+
+  getAvailableDates(doctorId: number, from?: string, days: number = 30): Observable<ApiResponse<AvailableDateResponse[]>> {
+    let params = new HttpParams().set('days', days);
+    if (from) params = params.set('from', from);
+    return this.http.get<ApiResponse<AvailableDateResponse[]>>(`${this.baseUrl}/${doctorId}/available-dates`, {params});
   }
 
   /** GET /doctors/{doctorId}/available-slots?date */

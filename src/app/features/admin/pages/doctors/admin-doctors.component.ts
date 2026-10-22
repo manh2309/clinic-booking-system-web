@@ -232,16 +232,16 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
               </ng-container>
 
               <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Nhận lịch khám</th>
+                <th mat-header-cell *matHeaderCellDef>Trạng thái bác sĩ</th>
                 <td mat-cell *matCellDef="let d">
                   <mat-slide-toggle
                     [checked]="d.active !== false"
                     (change)="toggleDoctorStatus(d)"
                     color="primary"
-                    matTooltip="Bật/Tắt trạng thái nhận lịch hẹn"
+                    matTooltip="Quản lý trạng thái hoạt động tại phòng khám"
                   >
                     <span class="status-txt" [class.off]="d.active === false">
-                      {{ d.active === false ? 'Tạm dừng' : 'Đang nhận' }}
+                      {{ d.active === false ? 'Ngừng hoạt động' : 'Đang hoạt động' }}
                     </span>
                   </mat-slide-toggle>
                 </td>

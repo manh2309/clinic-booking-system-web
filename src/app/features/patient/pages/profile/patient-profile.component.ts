@@ -172,6 +172,7 @@ import { AuthService } from '../../../../core/services/auth.service';
               </div>
             </div>
 
+            <p *ngIf="!profile?.patientProfileId" role="status">Bạn chưa hoàn thiện hồ sơ. Hãy bổ sung họ tên và kiểm tra thông tin liên hệ.</p>
             <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
               <!-- SECTION 1: Thông tin định danh -->
               <div class="form-section">
@@ -955,12 +956,18 @@ export class PatientProfileComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.isSaving || this.isLoading || this.hasError) return;
     if (this.profileForm.invalid) {
       this.profileForm.markAllAsTouched();
       return;
     }
     this.isSaving = true;
-    const request: PatientProfileRequest = this.profileForm.value as PatientProfileRequest;
+    const values = this.profileForm.value;
+    // Ô tùy chọn để trống phải gửi null để không bị kiểm tra như một giá trị đã nhập.
+    const request: PatientProfileRequest = {
+      ...values, fullName: values.fullName.trim(), email: values.email.trim(),
+      dateOfBirth: values.dateOfBirth || null, gender: values.gender || null,
+    };
     this.profileService.updateMyProfile(request).subscribe({
       next: () => {
         this.isSaving = false;

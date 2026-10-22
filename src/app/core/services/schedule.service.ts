@@ -25,4 +25,8 @@ export class ScheduleService {
   delete(id: number): Observable<ApiResponse<void>> {
     return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
   }
+
+  restore(id: number): Observable<ApiResponse<ScheduleResponse>> {
+    return this.http.patch<ApiResponse<ScheduleResponse>>(`${this.baseUrl}/${id}/restore`, {});
+  }
 }

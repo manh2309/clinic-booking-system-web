@@ -1,3 +1,5 @@
+import { WorkspaceMenuComponent } from '../../shared/components/workspace-menu/workspace-menu.component';
+import { NotificationBellComponent } from '../../shared/components/notification-bell/notification-bell.component';
 import { Component, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -20,6 +22,8 @@ interface NavItem {
   selector: 'app-patient-layout',
   standalone: true,
   imports: [
+    WorkspaceMenuComponent,
+    NotificationBellComponent,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
@@ -61,6 +65,7 @@ interface NavItem {
             </a>
           </nav>
 
+          <app-workspace-menu [items]="navItems"></app-workspace-menu>
           <span class="spacer"></span>
 
           <!-- Actions -->
@@ -76,17 +81,7 @@ interface NavItem {
               <span>Đặt khám ngay</span>
             </button>
 
-            <!-- Notifications -->
-            <button
-              mat-icon-button
-              routerLink="/patient/notifications"
-              class="notif-btn"
-              aria-label="Thông báo"
-            >
-              <mat-icon [matBadge]="unreadCount > 0 ? unreadCount : null" matBadgeColor="warn">
-                notifications
-              </mat-icon>
-            </button>
+            <app-notification-bell route="/patient/notifications"></app-notification-bell>
 
             <!-- User Menu Chip (Fixed layout & positioning) -->
             <button
@@ -520,6 +515,9 @@ interface NavItem {
       .navbar-nav { display: none; }
       .user-info { display: none; }
       .brand-tag { display: none; }
+      .brand-text { display:none; }
+      .navbar-container { gap:4px; }
+      .navbar-actions { gap:4px; }
       .patient-navbar { height: 64px; }
       .patient-main { padding: 20px 16px; }
     }
@@ -528,7 +526,7 @@ interface NavItem {
 export class PatientLayoutComponent implements OnInit {
   readonly Role = Role;
   currentUser: User | null = null;
-  unreadCount = 0;
+
 
   readonly navItems: NavItem[] = [
     { label: 'Trang chủ',   route: '/patient/home',            icon: 'home' },
