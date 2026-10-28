@@ -10,6 +10,7 @@ describe('Doctor records and completion', () => {
   let component: DoctorAppointmentsComponent;
   let service: jasmine.SpyObj<AppointmentService>;
   const appt: AppointmentResponse = {id:1, doctorId:1, status:'CONFIRMED',
+    visit:{id:1,status:'IN_PROGRESS',checkedInAt:new Date().toISOString()},
     startAt:new Date(Date.now()-60000).toISOString(), endAt:new Date(Date.now()+60000).toISOString()};
   beforeEach(() => {
     service = jasmine.createSpyObj<AppointmentService>('AppointmentService', ['complete', 'updateStatus', 'getDoctorRecord', 'getDoctorAppointments']);
@@ -21,6 +22,12 @@ describe('Doctor records and completion', () => {
     component.updateStatus(appt, 'COMPLETED');
     expect(component.recordTarget?.id).toBe(1);
     expect(service.updateStatus).not.toHaveBeenCalled();
+  });
+  it('cannot record results before reception and starting examination', () => {
+    component.openCompletion({...appt,visit:null});
+    expect(component.recordTarget).toBeNull();
+    component.openCompletion({...appt,visit:{id:1,status:'WAITING',checkedInAt:new Date().toISOString()}});
+    expect(component.recordTarget).toBeNull();
   });
   it('requires non-blank diagnosis and prevents two simultaneous submissions', () => {
     service.complete.and.returnValue(new Subject<ApiResponse<AppointmentResponse>>());

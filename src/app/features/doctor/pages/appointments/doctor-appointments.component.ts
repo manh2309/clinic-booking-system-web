@@ -1,7 +1,9 @@
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MedicalRecordResponse } from '../../../../core/services/medical-record.service';
 import { FormsModule } from '@angular/forms';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { QueueBoardComponent } from '../../../../shared/components/queue-board/queue-board.component';
+import { clinicInstant, clinicDateKey } from '../../../../core/utils/clinic-time';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -24,7 +26,7 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
     ReactiveFormsModule, FormsModule, MatCardModule, MatButtonModule, MatIconModule,
     MatMenuModule, MatPaginatorModule, MatSnackBarModule,
     NgIf, NgFor, DatePipe,
-    PageHeaderComponent, LoadingComponent, EmptyStateComponent, StatusChipComponent,
+    PageHeaderComponent, LoadingComponent, EmptyStateComponent, StatusChipComponent, QueueBoardComponent,
   ],
   template: `
     <div>
@@ -34,8 +36,9 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
       <p *ngIf="activityError" role="alert">Không thể kiểm tra trạng thái bác sĩ. Thao tác cập nhật đang tạm khóa.
         <button mat-button (click)="loadActivity()">Thử lại</button>
       </p>
+      <app-queue-board [canWrite]="doctorActive === true" (complete)="openCompletion($event)" (changed)="load()"></app-queue-board>
 
-      <mat-card *ngIf="recordTarget" id="record-panel" class="record-panel">
+      <mat-card *ngIf="recordTarget" #recordPanel id="record-panel" class="record-panel">
         <mat-card-content>
           <h2>{{ recordTarget.status === 'COMPLETED' ? 'Kết quả khám' : 'Ghi kết quả khám' }} · Lịch hẹn #{{ recordTarget.id }}</h2>
           <p>{{ recordTarget.patientFullName || ('Bệnh nhân #' + recordTarget.patientAccountId) }}</p>
@@ -116,8 +119,9 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
                   <app-status-chip [status]="mapStatus(appt.status)"></app-status-chip>
 
                   <span class="action-hint" *ngIf="appt.status === 'CONFIRMED' && !canComplete(appt)">
-                    Có thể ghi kết quả từ {{ appt.startAt | date:'HH:mm dd/MM/yyyy' }}
+                    {{appt.visit?.status === 'WAITING' ? 'Đã tiếp nhận, chờ bắt đầu khám' : 'Chờ tiếp nhận tại phòng khám'}}
                   </span>
+                  <button mat-stroked-button *ngIf="doctorActive === true && canStart(appt)" [disabled]="updatingIds.size > 0 || !!queue?.board?.activeVisit" (click)="startVisit(appt)">Bắt đầu khám</button>
                   <button mat-flat-button color="primary" *ngIf="doctorActive === true && canComplete(appt)"
                     (click)="openCompletion(appt)" [disabled]="updatingIds.size > 0">
                     Ghi kết quả khám
@@ -217,6 +221,10 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
   `],
 })
 export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
+  @ViewChild(QueueBoardComponent) queue?: QueueBoardComponent;
+  @ViewChild('recordPanel', {read:ElementRef}) set recordPanel(panel: ElementRef<HTMLElement> | undefined) {
+    panel?.nativeElement.scrollIntoView({behavior:'smooth',block:'start'});
+  }
   private clock?: ReturnType<typeof setInterval>;
   now = Date.now();
   appointments: AppointmentResponse[] = [];
@@ -262,6 +270,7 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
     this.now = Date.now();
     this.load();
     this.loadActivity();
+    this.queue?.load();
   }
 
   loadActivity(): void {
@@ -310,7 +319,7 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
 
   canAct(status: AppointmentStatus, appt?: AppointmentResponse): boolean {
     if (this.doctorActive !== true || (status !== 'PENDING' && status !== 'CONFIRMED')) return false;
-    return !appt || this.canConfirm(appt) || this.canComplete(appt) || this.canMarkNoShow(appt);
+    return !appt || this.canConfirm(appt) || this.canComplete(appt) || this.canStart(appt) || this.canMarkNoShow(appt);
   }
 
   mapStatus(s: string): StatusType {
@@ -349,7 +358,7 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
     const values = this.recordForm.getRawValue();
     this.appointmentService.complete(appt.id, {...values, diagnosis:values.diagnosis.trim()}).subscribe({
       next: () => {
-        this.updatingIds.delete(appt.id); this.closeRecord(); this.load();
+        this.updatingIds.delete(appt.id); this.closeRecord(); this.load(); this.queue?.load();
         this.snackBar.open('Đã lưu kết quả và hoàn thành lịch hẹn.', 'Đóng', {duration:3000});
       },
       error: err => { this.updatingIds.delete(appt.id); this.recordError = err?.error?.message ?? 'Chưa lưu được kết quả. Nội dung bạn nhập vẫn được giữ lại.'; },
@@ -381,10 +390,23 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
   }
 
   canComplete(appt: AppointmentResponse): boolean {
-    return appt.status === 'CONFIRMED' && new Date(appt.startAt).getTime() <= this.now;
+    return appt.status === 'CONFIRMED' && appt.visit?.status === 'IN_PROGRESS' && clinicInstant(appt.startAt) <= this.now;
+  }
+
+  canStart(a: AppointmentResponse): boolean {
+    return a.status === 'CONFIRMED' && a.visit?.status === 'WAITING' && clinicInstant(a.startAt) <= this.now
+      && clinicDateKey(clinicInstant(a.startAt)) === clinicDateKey(this.now);
+  }
+  startVisit(a: AppointmentResponse): void {
+    if (this.doctorActive !== true || !this.canStart(a) || this.updatingIds.size) return;
+    this.updatingIds.add(a.id);
+    this.appointmentService.startVisit(a.id).subscribe({
+      next: () => { this.updatingIds.delete(a.id); this.load(); this.queue?.load(); },
+      error: err => { this.updatingIds.delete(a.id); this.snackBar.open(err?.error?.message ?? 'Chưa bắt đầu được lượt khám. Hãy làm mới để kiểm tra.', 'Đóng', {duration:5000}); this.load(); this.queue?.load(); },
+    });
   }
 
   canMarkNoShow(appt: AppointmentResponse): boolean {
-    return appt.status === 'CONFIRMED' && new Date(appt.endAt).getTime() <= this.now;
+    return appt.status === 'CONFIRMED' && appt.visit?.status !== 'WAITING' && appt.visit?.status !== 'IN_PROGRESS' && new Date(appt.endAt).getTime() <= this.now;
   }
 }

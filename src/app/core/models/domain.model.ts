@@ -90,6 +90,22 @@ export interface AppointmentResponse {
   statusReason?: string;
   startAt: string;
   endAt: string;
+  visit?: VisitSummary | null;
+}
+
+export type VisitStatus = 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELED';
+export interface VisitSummary {
+  id: number; status: VisitStatus; checkedInAt: string; startedAt?: string;
+  completedAt?: string; canceledAt?: string; cancellationReason?: string;
+}
+export interface VisitResponse {
+  id: number; appointmentId: number; doctorId: number; doctorName: string;
+  patientName: string; patientPhone?: string; appointmentStartAt: string; appointmentEndAt: string;
+  status: VisitStatus; checkedInAt: string; startedAt?: string; completedAt?: string; priorityAt: string;
+}
+export interface QueueBoard {
+  date: string; activeVisit: VisitResponse | null;
+  waiting: import('./api-response.model').PageResponse<VisitResponse>;
 }
 
 export interface CreateAppointmentRequest {

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,6 +8,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AppointmentService } from '../../../../core/services/appointment.service';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { RescheduleDialogComponent } from '../../../../shared/components/reschedule/reschedule-dialog.component';
+import { QueueBoardComponent } from '../../../../shared/components/queue-board/queue-board.component';
+import { clinicInstant, clinicDateKey } from '../../../../core/utils/clinic-time';
 import { AppointmentResponse, AppointmentStatus } from '../../../../core/models/domain.model';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { StatusChipComponent, StatusType } from '../../../../shared/components/status-chip/status-chip.component';
@@ -15,9 +19,10 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
 @Component({
   selector: 'app-admin-appointments', standalone: true,
   imports: [FormsModule, NgIf, NgFor, DatePipe, MatButtonModule, MatFormFieldModule,
-    MatInputModule, MatSelectModule, MatPaginatorModule, MatSnackBarModule, PageHeaderComponent, StatusChipComponent],
+    MatInputModule, MatSelectModule, MatPaginatorModule, MatSnackBarModule, MatDialogModule, QueueBoardComponent, PageHeaderComponent, StatusChipComponent],
   template: `
     <app-page-header title="Lịch hẹn" subtitle="Theo dõi và xử lý lịch hẹn trong phòng khám"></app-page-header>
+    <app-queue-board [admin]="true" (changed)="load()"></app-queue-board>
     <div class="filters">
       <mat-form-field appearance="outline">
         <mat-label>Trạng thái</mat-label>
@@ -54,8 +59,11 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
         <div><strong>{{ appt.startAt | date:'dd/MM/yyyy HH:mm' }} – {{ appt.endAt | date:'HH:mm' }}</strong>
           <p><app-status-chip [status]="mapStatus(appt.status)"></app-status-chip></p>
           <p *ngIf="appt.statusReason">{{ appt.statusReason }}</p>
+          <p *ngIf="appt.visit">{{ visitLabel(appt) }} · Tiếp nhận {{appt.visit.checkedInAt | date:'dd/MM/yyyy HH:mm'}}</p>
         </div>
         <div class="actions">
+          <button mat-flat-button color="primary" *ngIf="canCheckIn(appt)" [disabled]="saving" (click)="checkIn(appt)">Tiếp nhận bệnh nhân</button>
+          <button mat-stroked-button (click)="reschedule(appt)">Đổi giờ / Lịch sử</button>
           <button mat-stroked-button color="warn" *ngIf="canCancel(appt)" (click)="open(appt, 'cancel')">Hủy lịch</button>
           <button mat-stroked-button *ngIf="canNoShow(appt)" (click)="open(appt, 'no-show')">Vắng mặt</button>
         </div>
@@ -73,6 +81,7 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
   `],
 })
 export class AdminAppointmentsComponent implements OnInit {
+  @ViewChild(QueueBoardComponent) queue?: QueueBoardComponent;
   appointments: AppointmentResponse[] = [];
   status: 'ALL' | AppointmentStatus = 'ALL';
   doctorId: number | null = null;
@@ -87,7 +96,11 @@ export class AdminAppointmentsComponent implements OnInit {
     {value:'EXPIRED',label:'Hết hạn'},{value:'NO_SHOW',label:'Vắng mặt'},
   ];
 
-  constructor(private service: AppointmentService, private snackBar: MatSnackBar) {}
+  constructor(private service: AppointmentService, private snackBar: MatSnackBar, private dialog: MatDialog) {}
+  reschedule(appointment: AppointmentResponse): void {
+    this.dialog.open(RescheduleDialogComponent, {width:'680px', maxWidth:'95vw', data:{appointment,admin:true}})
+      .afterClosed().subscribe(() => this.load());
+  }
   ngOnInit(): void { this.load(); }
   resetPage(): void { this.page = 0; this.load(); }
   changePage(event: PageEvent): void { this.page = event.pageIndex; this.size = event.pageSize; this.load(); }
@@ -104,10 +117,27 @@ export class AdminAppointmentsComponent implements OnInit {
   }
 
   canCancel(appt: AppointmentResponse): boolean {
-    return (appt.status === 'PENDING' || appt.status === 'CONFIRMED') && new Date(appt.startAt).getTime() > Date.now();
+    return !this.received(appt) && (appt.status === 'PENDING' || appt.status === 'CONFIRMED') && new Date(appt.startAt).getTime() > Date.now();
   }
   canNoShow(appt: AppointmentResponse): boolean {
-    return appt.status === 'CONFIRMED' && new Date(appt.endAt).getTime() <= Date.now();
+    return !this.received(appt) && appt.status === 'CONFIRMED' && new Date(appt.endAt).getTime() <= Date.now();
+  }
+  received(a: AppointmentResponse): boolean { return a.visit?.status === 'WAITING' || a.visit?.status === 'IN_PROGRESS'; }
+  canCheckIn(a: AppointmentResponse): boolean {
+    const now = Date.now();
+    return a.status === 'CONFIRMED' && (!a.visit || a.visit.status === 'CANCELED') && clinicDateKey(clinicInstant(a.startAt)) === clinicDateKey(now)
+      && now >= clinicInstant(a.startAt) - 30 * 60000 && now <= clinicInstant(a.endAt) + 60 * 60000;
+  }
+  visitLabel(a: AppointmentResponse): string {
+    return {WAITING:'Đang chờ khám',IN_PROGRESS:'Đang khám',COMPLETED:'Đã khám xong',CANCELED:'Đã rút tiếp nhận'}[a.visit!.status];
+  }
+  checkIn(a: AppointmentResponse): void {
+    if (this.saving || !this.canCheckIn(a)) return;
+    this.saving = true;
+    this.service.checkIn(a.id).subscribe({
+      next: () => { this.saving = false; this.load(); this.queue?.load(); this.snackBar.open('Đã tiếp nhận bệnh nhân vào hàng chờ.', 'Đóng', {duration:3000}); },
+      error: err => { this.saving = false; this.snackBar.open(err?.error?.message ?? 'Chưa xác định được kết quả. Hãy tải lại lịch hẹn trước khi thử lại.', 'Đóng', {duration:5000}); this.load(); },
+    });
   }
   open(appt: AppointmentResponse, action: 'cancel' | 'no-show'): void {
     if (this.saving) return;

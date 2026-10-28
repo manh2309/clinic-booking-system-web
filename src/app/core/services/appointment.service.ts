@@ -9,6 +9,7 @@ import {
   CreateAppointmentRequest,
   UpdateAppointmentStatusRequest,
   AppointmentStatus,
+  VisitResponse, QueueBoard,
 } from '../models/domain.model';
 
 @Injectable({ providedIn: 'root' })
@@ -17,6 +18,21 @@ export class AppointmentService {
   private readonly doctorUrl = `${environment.apiBaseUrl}/doctors/me/appointments`;
 
   constructor(private http: HttpClient) {}
+
+  checkIn(id: number): Observable<ApiResponse<VisitResponse>> {
+    return this.http.post<ApiResponse<VisitResponse>>(`${environment.apiBaseUrl}/admin/appointments/${id}/check-in`, {});
+  }
+  cancelReception(id: number, reason: string): Observable<ApiResponse<VisitResponse>> {
+    return this.http.patch<ApiResponse<VisitResponse>>(`${environment.apiBaseUrl}/admin/appointments/${id}/reception/cancel`, {reason});
+  }
+  startVisit(id: number): Observable<ApiResponse<VisitResponse>> {
+    return this.http.post<ApiResponse<VisitResponse>>(`${this.doctorUrl}/${id}/start`, {});
+  }
+  queue(admin: boolean, date: string, page = 0, doctorId?: number): Observable<ApiResponse<QueueBoard>> {
+    let params = new HttpParams().set('date', date).set('page', page).set('size', 20);
+    if (doctorId != null) params = params.set('doctorId', doctorId);
+    return this.http.get<ApiResponse<QueueBoard>>(`${environment.apiBaseUrl}/${admin ? 'admin' : 'doctors/me'}/queue`, {params});
+  }
 
   /** POST /appointments — bệnh nhân đặt lịch */
   book(request: CreateAppointmentRequest): Observable<ApiResponse<AppointmentResponse>> {

@@ -18,9 +18,10 @@ describe('Doctor appointment activity permissions', () => {
     );
   });
 
-  it('enables completion at the start time and stops the clock on destroy', fakeAsync(() => {
+  it('requires a started visit as well as the start time and stops the clock on destroy', fakeAsync(() => {
     spyOn(component, 'refresh');
     const appt = {id: 1, doctorId: 2, status: 'CONFIRMED' as const,
+      visit:{id:1,status:'IN_PROGRESS' as const,checkedInAt:new Date().toISOString()},
       startAt: new Date(Date.now() + 2000).toISOString(),
       endAt: new Date(Date.now() + 1802000).toISOString()};
     component.ngOnInit();

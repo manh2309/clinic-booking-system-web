@@ -62,7 +62,7 @@ import { NotificationService, NotificationResponse } from '../../../core/service
 })
 export class NotificationBellComponent implements OnInit, OnDestroy {
   @Input() route = '/patient/notifications';
-  @ViewChild('bell') bell?: ElementRef<HTMLButtonElement>;
+  @ViewChild('bell', {read:ElementRef}) bell?: ElementRef<HTMLButtonElement>;
   readonly positions = [{originX:'end' as const, originY:'bottom' as const, overlayX:'end' as const, overlayY:'top' as const, offsetY:8}];
   count: number | null = null;
   opened = false;

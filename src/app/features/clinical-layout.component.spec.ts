@@ -20,7 +20,7 @@ describe('Clinical screen rendering at content widths', () => {
     await TestBed.configureTestingModule({
       imports:[DoctorAppointmentsComponent, PatientMedicalRecordsComponent, PatientNotificationsComponent, NoopAnimationsModule, RouterTestingModule],
       providers:[
-        {provide:AppointmentService, useValue:{getDoctorAppointments:() => of(page([]))}},
+        {provide:AppointmentService, useValue:{getDoctorAppointments:() => of(page([])), queue:() => of({data:{date:'2030-01-01',activeVisit:null,waiting:page([]).data}})}},
         {provide:DoctorService, useValue:{getMine:() => of({data:{active:true}})}},
         {provide:MedicalRecordService, useValue:{getMine:() => of(page([result]))}},
         {provide:NotificationService, useValue:{getMine:() => of(page([{id:1, appointmentId:1, type:'APPOINTMENT_COMPLETED',
@@ -34,7 +34,7 @@ describe('Clinical screen rendering at content widths', () => {
       const fixture = TestBed.createComponent(DoctorAppointmentsComponent);
       const host = fixture.nativeElement as HTMLElement; host.style.display='block'; host.style.width=width+'px';
       fixture.detectChanges();
-      fixture.componentInstance.openCompletion({id:1, doctorId:1, status:'CONFIRMED', startAt:new Date(Date.now()-60000).toISOString(), endAt:new Date(Date.now()+60000).toISOString()});
+      fixture.componentInstance.openCompletion({id:1, doctorId:1, status:'CONFIRMED', visit:{id:1,status:'IN_PROGRESS',checkedInAt:new Date().toISOString()}, startAt:new Date(Date.now()-60000).toISOString(), endAt:new Date(Date.now()+60000).toISOString()});
       fixture.detectChanges();
       expect(host.querySelectorAll('textarea').length).toBe(3);
       expect(host.textContent).toContain('Lưu kết quả và hoàn thành');

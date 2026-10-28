@@ -1,5 +1,6 @@
 import { of } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { AppointmentService } from '../../../../core/services/appointment.service';
 import { AppointmentResponse } from '../../../../core/models/domain.model';
 import { AdminAppointmentsComponent } from './admin-appointments.component';
@@ -15,7 +16,19 @@ describe('Admin appointment resolution', () => {
     service.getAdminAppointments.and.returnValue(of({code:1000,message:'Success',data:{
       content:[],page:0,size:20,totalElements:0,totalPages:0,last:true
     }}));
-    component = new AdminAppointmentsComponent(service, jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']));
+    component = new AdminAppointmentsComponent(service, jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']), jasmine.createSpyObj<MatDialog>('MatDialog', ['open']));
+  });
+  it('does not offer cancel or no-show for a patient already received', () => {
+    const received: AppointmentResponse = {...appointment,status:'CONFIRMED',visit:{id:1,status:'WAITING',checkedInAt:new Date().toISOString()}};
+    expect(component.canCancel(received)).toBeFalse();
+    expect(component.canNoShow({...received,endAt:new Date(Date.now()-60000).toISOString()})).toBeFalse();
+  });
+  it('only receives confirmed appointments inside the same-day window', () => {
+    const current: AppointmentResponse = {...appointment,status:'CONFIRMED',startAt:new Date(Date.now()-60000).toISOString(),endAt:new Date(Date.now()+60000).toISOString()};
+    expect(component.canCheckIn(current)).toBeTrue();
+    expect(component.canCheckIn({...current,status:'PENDING'})).toBeFalse();
+    expect(component.canCheckIn({...current,startAt:new Date(Date.now()+31*60000).toISOString()})).toBeFalse();
+    expect(component.canCheckIn({...current,visit:{id:1,status:'WAITING',checkedInAt:new Date().toISOString()}})).toBeFalse();
   });
 
   it('requires a reason before resolving an appointment', () => {

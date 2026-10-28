@@ -9,6 +9,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { AppointmentService } from '../../../../core/services/appointment.service';
+import { RescheduleDialogComponent } from '../../../../shared/components/reschedule/reschedule-dialog.component';
 import { AppointmentResponse, AppointmentStatus } from '../../../../core/models/domain.model';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
@@ -151,15 +152,17 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
                 </div>
               </div>
 
-              <div class="ticket-note">
+              <div class="ticket-note" *ngIf="(appt.status === 'PENDING' || appt.status === 'CONFIRMED') && !appt.visit">
                 <mat-icon>info</mat-icon>
                 <span>Vui lòng đến trước giờ hẹn 15 phút để hoàn tất thủ tục tiếp đón.</span>
               </div>
               <p *ngIf="appt.statusReason">{{ appt.statusReason }}</p>
+              <p *ngIf="appt.visit"><strong>{{visitLabel(appt)}}</strong> · Tiếp nhận {{appt.visit.checkedInAt | date:'dd/MM/yyyy HH:mm'}}</p>
             </div>
 
             <!-- Right Action Block -->
             <div class="ticket-actions">
+              <button mat-stroked-button (click)="reschedule(appt)">Đề xuất đổi giờ / Lịch sử</button>
               <button
                 *ngIf="canCancel(appt)"
                 mat-stroked-button
@@ -521,7 +524,15 @@ export class PatientAppointmentsComponent implements OnInit {
   }
 
   canCancel(appt: AppointmentResponse): boolean {
-    return (appt.status === 'PENDING' || appt.status === 'CONFIRMED') && new Date(appt.startAt).getTime() > Date.now();
+    return appt.visit?.status !== 'WAITING' && appt.visit?.status !== 'IN_PROGRESS' && (appt.status === 'PENDING' || appt.status === 'CONFIRMED') && new Date(appt.startAt).getTime() > Date.now();
+  }
+  visitLabel(a: AppointmentResponse): string {
+    return {WAITING:'Đã có mặt, đang chờ khám',IN_PROGRESS:'Đang khám',COMPLETED:'Đã khám xong',CANCELED:'Đã rút tiếp nhận'}[a.visit!.status];
+  }
+
+  reschedule(appointment: AppointmentResponse): void {
+    this.dialog.open(RescheduleDialogComponent, {width:'680px', maxWidth:'95vw', data:{appointment,admin:false}})
+      .afterClosed().subscribe(() => this.loadAppointments());
   }
 
   mapStatus(status: AppointmentStatus): StatusType {
