@@ -243,6 +243,7 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
   recordLoading = false;
   recordError = '';
   private recordRequest = 0;
+  private listRequest = 0;
   readonly recordForm = new FormGroup({
     diagnosis: new FormControl('', {nonNullable:true, validators:[Validators.required, Validators.maxLength(5000), Validators.pattern(/.*\S.*/s)]}),
     examinationNotes: new FormControl('', {nonNullable:true, validators:[Validators.maxLength(5000)]}),
@@ -263,6 +264,7 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.clock !== undefined) clearInterval(this.clock);
     this.recordRequest++;
+    this.listRequest++;
   }
 
   refresh(): void {
@@ -283,12 +285,14 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
   }
 
   load(): void {
+    const request = ++this.listRequest;
     this.isLoading = true;
     this.hasError = false;
     this.errorMessage = '';
 
     this.appointmentService.getDoctorAppointments(this.currentPage, this.pageSize, this.statusFilter || undefined).subscribe({
       next: (res) => {
+        if (request !== this.listRequest) return;
         this.appointments = res.data?.content ?? [];
         this.totalElements = res.data?.totalElements ?? 0;
         this.isLoading = false;
@@ -298,6 +302,7 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
+        if (request !== this.listRequest) return;
         this.isLoading = false;
         this.hasError = true;
         this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải lịch hẹn.';
@@ -386,7 +391,7 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
   }
 
   canConfirm(appt: AppointmentResponse): boolean {
-    return appt.status === 'PENDING' && new Date(appt.startAt).getTime() > this.now;
+    return appt.status === 'PENDING' && clinicInstant(appt.startAt) > this.now;
   }
 
   canComplete(appt: AppointmentResponse): boolean {
@@ -407,6 +412,6 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
   }
 
   canMarkNoShow(appt: AppointmentResponse): boolean {
-    return appt.status === 'CONFIRMED' && appt.visit?.status !== 'WAITING' && appt.visit?.status !== 'IN_PROGRESS' && new Date(appt.endAt).getTime() <= this.now;
+    return appt.status === 'CONFIRMED' && appt.visit?.status !== 'WAITING' && appt.visit?.status !== 'IN_PROGRESS' && clinicInstant(appt.endAt) <= this.now;
   }
 }

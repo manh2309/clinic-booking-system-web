@@ -31,14 +31,16 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 })
 export class PatientMedicalRecordsComponent implements OnInit {
   records: MedicalRecordResponse[] = [];
+  private listRequest = 0;
   loading = false; error = ''; page = 0; pageSize = 10; total = 0;
   constructor(private service: MedicalRecordService) {}
   ngOnInit(): void { this.load(); }
   load(): void {
+    const request = ++this.listRequest;
     this.loading = true; this.error = '';
     this.service.getMine(this.page, this.pageSize).subscribe({
-      next: res => { this.records = res.data.content; this.total = res.data.totalElements; this.loading = false; },
-      error: () => { this.loading = false; this.error = 'Không thể tải kết quả khám. Vui lòng thử lại.'; },
+      next: res => { if (request !== this.listRequest) return; this.records = res.data.content; this.total = res.data.totalElements; this.loading = false; },
+      error: () => { if (request !== this.listRequest) return; this.loading = false; this.error = 'Không thể tải kết quả khám. Vui lòng thử lại.'; },
     });
   }
   changePage(event: PageEvent): void { this.page = event.pageIndex; this.pageSize = event.pageSize; this.load(); }

@@ -58,5 +58,5 @@ export class DoctorLeavesComponent implements OnInit {
         });
     }
     withdraw(l: Leave) { if (this.busy)
-        return; this.busy = true; this.error = ''; this.service.withdraw(l.id).subscribe({ next: () => { this.busy = false; this.load(); }, error: e => { this.busy = false; this.error = e.error?.message ?? 'Không rút được đơn.'; } }); }
+        return; this.busy = true; this.error = ''; this.message = ''; this.service.withdraw(l.id).subscribe({ next: () => { this.busy = false; this.message = 'Đã rút đơn nghỉ.'; this.load(); }, error: e => { this.busy = false; this.error = e.error?.message ?? 'Không rút được đơn.'; } }); }
 }

@@ -90,6 +90,7 @@ export class AdminAppointmentsComponent implements OnInit {
   selected: AppointmentResponse | null = null;
   action: 'cancel' | 'no-show' = 'cancel';
   reason = '';
+  private listRequest = 0;
   statuses: {value: AppointmentStatus; label: string}[] = [
     {value:'PENDING',label:'Chờ xác nhận'},{value:'CONFIRMED',label:'Đã xác nhận'},
     {value:'COMPLETED',label:'Hoàn thành'},{value:'CANCELED',label:'Đã hủy'},
@@ -106,21 +107,22 @@ export class AdminAppointmentsComponent implements OnInit {
   changePage(event: PageEvent): void { this.page = event.pageIndex; this.size = event.pageSize; this.load(); }
 
   load(): void {
+    const request = ++this.listRequest;
     if (this.doctorId != null && (!Number.isInteger(this.doctorId) || this.doctorId < 1)) {
-      this.error = 'Mã bác sĩ phải là số nguyên dương.'; return;
+      this.loading = false; this.error = 'Mã bác sĩ phải là số nguyên dương.'; return;
     }
     this.loading = true; this.error = '';
     this.service.getAdminAppointments(this.page, this.size, this.status === 'ALL' ? undefined : this.status, this.doctorId ?? undefined).subscribe({
-      next: res => { this.appointments = res.data.content; this.total = res.data.totalElements; this.loading = false; },
-      error: err => { this.error = err?.error?.message ?? 'Không thể tải lịch hẹn.'; this.loading = false; },
+      next: res => { if (request !== this.listRequest) return; this.appointments = res.data.content; this.total = res.data.totalElements; this.loading = false; },
+      error: err => { if (request !== this.listRequest) return; this.error = err?.error?.message ?? 'Không thể tải lịch hẹn.'; this.loading = false; },
     });
   }
 
   canCancel(appt: AppointmentResponse): boolean {
-    return !this.received(appt) && (appt.status === 'PENDING' || appt.status === 'CONFIRMED') && new Date(appt.startAt).getTime() > Date.now();
+    return !this.received(appt) && (appt.status === 'PENDING' || appt.status === 'CONFIRMED') && clinicInstant(appt.startAt) > Date.now();
   }
   canNoShow(appt: AppointmentResponse): boolean {
-    return !this.received(appt) && appt.status === 'CONFIRMED' && new Date(appt.endAt).getTime() <= Date.now();
+    return !this.received(appt) && appt.status === 'CONFIRMED' && clinicInstant(appt.endAt) <= Date.now();
   }
   received(a: AppointmentResponse): boolean { return a.visit?.status === 'WAITING' || a.visit?.status === 'IN_PROGRESS'; }
   canCheckIn(a: AppointmentResponse): boolean {

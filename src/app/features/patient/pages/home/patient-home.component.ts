@@ -1,3 +1,4 @@
+import { Role } from '../../../../core/models/user.model';
 import { Component, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -84,7 +85,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
             <mat-icon class="tile-arrow">arrow_forward</mat-icon>
           </a>
 
-          <a class="nav-tile" routerLink="/patient/appointments">
+          <a *ngIf="isPatient" class="nav-tile" routerLink="/patient/appointments">
             <div class="tile-icon icon-teal"><mat-icon>calendar_today</mat-icon></div>
             <div class="tile-info">
               <h3>Lịch hẹn của tôi</h3>
@@ -93,7 +94,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
             <mat-icon class="tile-arrow">arrow_forward</mat-icon>
           </a>
 
-          <a class="nav-tile" routerLink="/patient/profile">
+          <a *ngIf="isPatient" class="nav-tile" routerLink="/patient/profile">
             <div class="tile-icon icon-slate"><mat-icon>badge</mat-icon></div>
             <div class="tile-info">
               <h3>Hồ sơ cá nhân</h3>
@@ -592,6 +593,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
   `],
 })
 export class PatientHomeComponent implements OnInit {
+  get isPatient(): boolean { return this.authService.isAuthenticated() && this.authService.getCurrentUser()?.role === Role.PATIENT; }
   searchKeyword = '';
   specialties: SpecialtyResponse[] = [];
   isLoadingSpecialties = false;

@@ -1,4 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import { EMPTY, finalize, switchMap, take } from 'rxjs';
+import { clinicInstant } from '../../../../core/utils/clinic-time';
 import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -162,12 +164,13 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
 
             <!-- Right Action Block -->
             <div class="ticket-actions">
-              <button mat-stroked-button (click)="reschedule(appt)">Đề xuất đổi giờ / Lịch sử</button>
+              <button mat-stroked-button [disabled]="cancelingIds.has(appt.id)" (click)="reschedule(appt)">Đề xuất đổi giờ / Lịch sử</button>
               <button
                 *ngIf="canCancel(appt)"
                 mat-stroked-button
                 color="warn"
                 (click)="cancelAppointment(appt)"
+                [disabled]="cancelingIds.has(appt.id)"
                 class="btn-cancel"
               >
                 <mat-icon>close</mat-icon>
@@ -473,6 +476,8 @@ export class PatientAppointmentsComponent implements OnInit {
   currentPage = 0;
   pageSize = 10;
   totalElements = 0;
+  cancelingIds = new Set<number>();
+  private listRequest = 0;
 
   constructor(
     private appointmentService: AppointmentService,
@@ -486,6 +491,7 @@ export class PatientAppointmentsComponent implements OnInit {
   }
 
   loadAppointments(): void {
+    const request = ++this.listRequest;
     this.isLoading = true;
     this.hasError = false;
     this.errorMessage = '';
@@ -493,12 +499,14 @@ export class PatientAppointmentsComponent implements OnInit {
     const status = this.selectedStatusFilter === 'ALL' ? undefined : this.selectedStatusFilter;
     this.appointmentService.getMine(this.currentPage, this.pageSize, status).subscribe({
       next: (res) => {
+        if (request !== this.listRequest) return;
         this.appointments = res.data?.content ?? [];
         this.totalElements = res.data?.totalElements ?? 0;
         this.applyFilter();
         this.isLoading = false;
       },
       error: (err) => {
+        if (request !== this.listRequest) return;
         this.isLoading = false;
         this.hasError = true;
         this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải lịch khám.';
@@ -524,13 +532,14 @@ export class PatientAppointmentsComponent implements OnInit {
   }
 
   canCancel(appt: AppointmentResponse): boolean {
-    return appt.visit?.status !== 'WAITING' && appt.visit?.status !== 'IN_PROGRESS' && (appt.status === 'PENDING' || appt.status === 'CONFIRMED') && new Date(appt.startAt).getTime() > Date.now();
+    return appt.visit?.status !== 'WAITING' && appt.visit?.status !== 'IN_PROGRESS' && (appt.status === 'PENDING' || appt.status === 'CONFIRMED') && clinicInstant(appt.startAt) > Date.now();
   }
   visitLabel(a: AppointmentResponse): string {
     return {WAITING:'Đã có mặt, đang chờ khám',IN_PROGRESS:'Đang khám',COMPLETED:'Đã khám xong',CANCELED:'Đã rút tiếp nhận'}[a.visit!.status];
   }
 
   reschedule(appointment: AppointmentResponse): void {
+    if (this.cancelingIds.has(appointment.id)) return;
     this.dialog.open(RescheduleDialogComponent, {width:'680px', maxWidth:'95vw', data:{appointment,admin:false}})
       .afterClosed().subscribe(() => this.loadAppointments());
   }
@@ -548,6 +557,8 @@ export class PatientAppointmentsComponent implements OnInit {
   }
 
   cancelAppointment(appt: AppointmentResponse): void {
+    if (this.cancelingIds.has(appt.id) || !this.canCancel(appt)) return;
+    this.cancelingIds.add(appt.id);
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '420px',
       data: {
@@ -561,9 +572,11 @@ export class PatientAppointmentsComponent implements OnInit {
       } as ConfirmDialogData,
     });
 
-    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
-      if (!confirmed) return;
-      this.appointmentService.cancel(appt.id).subscribe({
+    dialogRef.afterClosed().pipe(
+      take(1),
+      switchMap((confirmed: boolean) => confirmed && this.canCancel(appt) ? this.appointmentService.cancel(appt.id) : EMPTY),
+      finalize(() => this.cancelingIds.delete(appt.id))
+    ).subscribe({
         next: () => {
           this.snackBar.open('Đã hủy lịch khám thành công', 'Đóng', { duration: 3000 });
           this.loadAppointments();
@@ -572,8 +585,8 @@ export class PatientAppointmentsComponent implements OnInit {
           this.snackBar.open(err?.error?.message ?? 'Hủy lịch thất bại', 'Đóng', {
             duration: 3000,
           });
+          this.loadAppointments();
         },
-      });
     });
   }
 

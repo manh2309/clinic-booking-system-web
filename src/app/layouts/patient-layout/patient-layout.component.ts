@@ -1,7 +1,8 @@
 import { WorkspaceMenuComponent } from '../../shared/components/workspace-menu/workspace-menu.component';
 import { NotificationBellComponent } from '../../shared/components/notification-bell/notification-bell.component';
-import { Component, OnInit } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, OnInit, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +12,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { NgIf, NgFor } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 import { User, Role } from '../../core/models/user.model';
+import { ROLE_HOME_ROUTES } from '../../core/constants/app.constants';
+import { patientReturnUrl } from '../../core/utils/auth-return';
 
 interface NavItem {
   label: string;
@@ -58,6 +61,7 @@ interface NavItem {
               *ngFor="let item of navItems"
               [routerLink]="item.route"
               routerLinkActive="nav-link--active"
+              [routerLinkActiveOptions]="{exact: true}"
               class="nav-link"
             >
               <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
@@ -81,11 +85,14 @@ interface NavItem {
               <span>Đặt khám ngay</span>
             </button>
 
-            <app-notification-bell route="/patient/notifications"></app-notification-bell>
+            <a *ngIf="!signedIn" mat-button routerLink="/login" [queryParams]="{returnUrl: returnUrl}">Đăng nhập</a>
+            <a *ngIf="!signedIn" mat-stroked-button routerLink="/register" [queryParams]="{returnUrl: returnUrl}">Đăng ký</a>
+            <app-notification-bell *ngIf="isPatient" route="/patient/notifications"></app-notification-bell>
 
             <!-- User Menu Chip (Fixed layout & positioning) -->
             <button
               type="button"
+              *ngIf="signedIn"
               [matMenuTriggerFor]="userMenu"
               class="user-chip-btn"
               aria-label="Menu tài khoản"
@@ -111,18 +118,19 @@ interface NavItem {
                 </span>
               </div>
               <mat-divider></mat-divider>
-              <button mat-menu-item routerLink="/patient/profile">
+              <button *ngIf="isPatient" mat-menu-item routerLink="/patient/profile">
                 <mat-icon color="primary">account_circle</mat-icon>
                 <span>Hồ sơ cá nhân</span>
               </button>
-              <button mat-menu-item routerLink="/patient/appointments">
+              <button *ngIf="isPatient" mat-menu-item routerLink="/patient/appointments">
                 <mat-icon color="primary">calendar_today</mat-icon>
                 <span>Lịch hẹn của tôi</span>
               </button>
-              <button mat-menu-item routerLink="/patient/medical-records">
+              <button *ngIf="isPatient" mat-menu-item routerLink="/patient/medical-records">
                 <mat-icon color="primary">folder_shared</mat-icon>
                 <span>Lịch sử khám bệnh</span>
               </button>
+              <button *ngIf="signedIn && !isPatient" mat-menu-item [routerLink]="workspaceRoute">Bàn làm việc</button>
               <mat-divider></mat-divider>
               <button mat-menu-item (click)="logout()" class="logout-item">
                 <mat-icon color="warn">logout</mat-icon>
@@ -156,8 +164,8 @@ interface NavItem {
           <div class="footer-links">
             <a routerLink="/patient/home">Trang chủ</a>
             <a routerLink="/patient/doctors">Tìm bác sĩ</a>
-            <a routerLink="/patient/appointments">Lịch hẹn của tôi</a>
-            <a routerLink="/patient/medical-records">Hồ sơ bệnh án</a>
+            <a *ngIf="isPatient" routerLink="/patient/appointments">Lịch hẹn của tôi</a>
+            <a *ngIf="isPatient" routerLink="/patient/medical-records">Hồ sơ bệnh án</a>
           </div>
         </div>
 
@@ -518,6 +526,8 @@ interface NavItem {
       .brand-text { display:none; }
       .navbar-container { gap:4px; }
       .navbar-actions { gap:4px; }
+      .quick-book-btn span { display:none; }
+      .quick-book-btn { min-width:40px; padding:0 8px; }
       .patient-navbar { height: 64px; }
       .patient-main { padding: 20px 16px; }
     }
@@ -528,17 +538,26 @@ export class PatientLayoutComponent implements OnInit {
   currentUser: User | null = null;
 
 
-  readonly navItems: NavItem[] = [
+  private readonly publicNavItems: NavItem[] = [
     { label: 'Trang chủ',   route: '/patient/home',            icon: 'home' },
     { label: 'Tìm bác sĩ', route: '/patient/doctors',         icon: 'medical_services' },
-    { label: 'Lịch khám',   route: '/patient/appointments',   icon: 'calendar_today' },
-    { label: 'Hồ sơ bệnh án', route: '/patient/medical-records', icon: 'folder_shared' },
   ];
 
-  constructor(private authService: AuthService) {}
+  get signedIn(): boolean { return this.authService.isAuthenticated(); }
+  get isPatient(): boolean { return this.signedIn && this.currentUser?.role === Role.PATIENT; }
+  get workspaceRoute(): string { return this.currentUser ? ROLE_HOME_ROUTES[this.currentUser.role] : '/login'; }
+  get returnUrl(): string | null { return patientReturnUrl(this.router.url); }
+  get navItems(): NavItem[] {
+    return this.isPatient ? [...this.publicNavItems,
+      {label:'Lịch khám',route:'/patient/appointments',icon:'calendar_today'},
+      {label:'Hồ sơ bệnh án',route:'/patient/medical-records',icon:'folder_shared'}]
+      : this.signedIn ? [...this.publicNavItems,{label:'Bàn làm việc',route:this.workspaceRoute,icon:'dashboard'}] : this.publicNavItems;
+  }
+
+  constructor(private authService: AuthService, private router: Router, private destroy: DestroyRef) {}
 
   ngOnInit(): void {
-    this.authService.currentUser$.subscribe((user) => {
+    this.authService.currentUser$.pipe(takeUntilDestroyed(this.destroy)).subscribe((user) => {
       this.currentUser = user;
     });
   }

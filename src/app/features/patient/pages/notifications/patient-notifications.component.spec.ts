@@ -32,4 +32,10 @@ describe('Notifications', () => {
     const doctor = new PatientNotificationsComponent(service, {url:'/doctor/notifications'} as Router);
     expect(doctor.destination(item)).toBe('/doctor/appointments');
   });
+  it('does not reload or change pages while a read update is still pending', () => {
+    const request = new Subject<any>(); service.markRead.and.returnValue(request);
+    component.markRead({...item}); component.load(); component.changePage({pageIndex:1,pageSize:10,length:20});
+    expect(service.getMine).not.toHaveBeenCalled(); expect(component.page).toBe(0);
+    request.error(new Error('offline')); expect(component.reading.size).toBe(0);
+  });
 });

@@ -4,10 +4,9 @@ import { roleGuard } from './core/guards/role.guard';
 import { Role } from './core/models/user.model';
 
 export const routes: Routes = [
-  // === Redirect mặc định về login ===
   {
     path: '',
-    redirectTo: 'login',
+    redirectTo: 'patient/home',
     pathMatch: 'full',
   },
 
@@ -49,8 +48,6 @@ export const routes: Routes = [
       import('./layouts/patient-layout/patient-layout.component').then(
         (m) => m.PatientLayoutComponent
       ),
-    canActivate: [authGuard, roleGuard],
-    data: { roles: [Role.PATIENT] },
     children: [
       {
         path: '',
@@ -83,6 +80,8 @@ export const routes: Routes = [
       },
       {
         path: 'appointments',
+        canActivate: [authGuard, roleGuard],
+        data: { roles: [Role.PATIENT] },
         loadComponent: () =>
           import('./features/patient/pages/appointments/patient-appointments.component').then(
             (m) => m.PatientAppointmentsComponent
@@ -91,6 +90,8 @@ export const routes: Routes = [
       },
       {
         path: 'medical-records',
+        canActivate: [authGuard, roleGuard],
+        data: { roles: [Role.PATIENT] },
         loadComponent: () =>
           import('./features/patient/pages/medical-records/patient-medical-records.component').then(
             (m) => m.PatientMedicalRecordsComponent
@@ -99,6 +100,8 @@ export const routes: Routes = [
       },
       {
         path: 'notifications',
+        canActivate: [authGuard, roleGuard],
+        data: { roles: [Role.PATIENT] },
         loadComponent: () =>
           import('./features/patient/pages/notifications/patient-notifications.component').then(
             (m) => m.PatientNotificationsComponent
@@ -107,6 +110,8 @@ export const routes: Routes = [
       },
       {
         path: 'profile',
+        canActivate: [authGuard, roleGuard],
+        data: { roles: [Role.PATIENT] },
         loadComponent: () =>
           import('./features/patient/pages/profile/patient-profile.component').then(
             (m) => m.PatientProfileComponent

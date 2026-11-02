@@ -90,6 +90,7 @@ export class RescheduleDialogComponent implements OnInit {
       (a.status === 'CANCELED' || ((a.status === 'PENDING' || a.status === 'CONFIRMED') && new Date(a.startAt + '+07:00').getTime() > Date.now()));
   }
   load(): void {
+    if (this.busy) return;
     this.loading = true; this.error = '';
     this.service.history(this.data.appointment.id, this.data.admin).pipe(takeUntilDestroyed(this.destroy)).subscribe({
       next: res => { this.items = res.data; this.loading = false; },
@@ -120,7 +121,7 @@ export class RescheduleDialogComponent implements OnInit {
     this.expiresAt = new Date(instant + 7 * 3600000).toISOString().slice(0,16);
   }
   propose(): void {
-    if (this.busy || !this.slotId || !this.reason.trim() || !this.expiresAt) return;
+    if (this.busy || this.loading || this.slotsLoading || !this.slotId || !this.reason.trim() || !this.expiresAt) return;
     this.setBusy(true);
     this.service.propose(this.data.appointment.id, this.slotId, this.reason.trim(), this.expiresAt + ':00').pipe(takeUntilDestroyed(this.destroy)).subscribe({
       next: () => { this.changed = true; this.setBusy(false); this.reason = ''; this.success = 'Đã gửi đề xuất cho bệnh nhân.'; this.load(); },
@@ -128,7 +129,7 @@ export class RescheduleDialogComponent implements OnInit {
     });
   }
   respond(p: RescheduleProposal, action: 'accept' | 'decline' | 'withdraw'): void {
-    if (this.busy) return; this.setBusy(true);
+    if (this.busy || this.loading || this.state(p) !== 'PENDING') return; this.setBusy(true);
     this.service.respond(this.data.appointment.id, p.id, action).pipe(takeUntilDestroyed(this.destroy)).subscribe({
       next: res => { this.changed = true; this.setBusy(false); this.confirming = null;
         this.success = action === 'accept' ? 'Đã tạo lịch mới #' + res.data.replacementAppointmentId + ', chờ bác sĩ xác nhận.' : 'Đã cập nhật đề xuất.'; this.load(); },

@@ -432,6 +432,7 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
   pageSize = 12;
   totalElements = 0;
   private destroy$ = new Subject<void>();
+  private doctorsRequest = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -469,6 +470,7 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.doctorsRequest++;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -488,6 +490,7 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
   }
 
   loadDoctors(): void {
+    const request = ++this.doctorsRequest;
     this.isLoading = true;
     this.hasError = false;
     this.errorMessage = '';
@@ -505,11 +508,13 @@ export class PatientDoctorsComponent implements OnInit, OnDestroy {
       })
       .subscribe({
         next: (res) => {
+          if (request !== this.doctorsRequest) return;
           this.doctors = res.data?.content ?? [];
           this.totalElements = res.data?.totalElements ?? 0;
           this.isLoading = false;
         },
         error: (err) => {
+          if (request !== this.doctorsRequest) return;
           this.isLoading = false;
           this.hasError = true;
           this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải danh sách bác sĩ.';

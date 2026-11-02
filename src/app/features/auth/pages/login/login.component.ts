@@ -1,3 +1,4 @@
+import { patientReturnUrl, continueAfterAuthentication } from '../../../../core/utils/auth-return';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
@@ -30,6 +31,7 @@ import { LoginRequest } from '../../../../core/models/auth.model';
         <p class="login-subtitle">Chào mừng bạn quay trở lại</p>
       </div>
 
+      <p *ngIf="registered" role="status">Đã tạo tài khoản. Vui lòng đăng nhập để tiếp tục.</p>
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
         <!-- Username -->
         <mat-form-field appearance="outline" class="full-width">
@@ -94,8 +96,8 @@ import { LoginRequest } from '../../../../core/models/auth.model';
 
       <div class="login-footer">
         <p>
-          Chưa có tài khoản?
-          <a routerLink="/register" class="link" id="login-to-register">Đăng ký ngay</a>
+          <a routerLink="/patient/home" class="link">Về trang chủ</a> · Chưa có tài khoản?
+          <a routerLink="/register" [queryParams]="{returnUrl: returnUrl}" class="link" id="login-to-register">Đăng ký ngay</a>
         </p>
       </div>
     </div>
@@ -180,7 +182,8 @@ export class LoginComponent implements OnInit {
   isLoading = false;
   hidePassword = true;
   errorMessage = '';
-  private returnUrl = '/';
+  returnUrl: string | null = null;
+  registered = false;
 
   constructor(
     private fb: FormBuilder,
@@ -195,16 +198,18 @@ export class LoginComponent implements OnInit {
       password: ['', Validators.required],
     });
 
-    // Nếu đã login thì redirect về home
+    this.returnUrl = patientReturnUrl(this.route.snapshot.queryParams['returnUrl']);
+    this.registered = this.route.snapshot.queryParams['registered'] === '1';
     if (this.authService.isAuthenticated()) {
-      this.authService.redirectToHome();
+      continueAfterAuthentication(this.authService, this.router, this.returnUrl);
       return;
     }
 
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] ?? '';
+
   }
 
   onSubmit(): void {
+    if (this.isLoading) return;
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       return;
@@ -218,16 +223,14 @@ export class LoginComponent implements OnInit {
     this.authService.login(request).subscribe({
       next: () => {
         this.isLoading = false;
-        if (this.returnUrl) {
-          this.router.navigateByUrl(this.returnUrl);
-        } else {
-          this.authService.redirectToHome();
-        }
+        continueAfterAuthentication(this.authService, this.router, this.returnUrl);
       },
       error: (err: { error?: { message?: string }; status?: number }) => {
         this.isLoading = false;
         if (err?.status === 401 || err?.status === 400) {
           this.errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng';
+        } else if (err?.status === 403) {
+          this.errorMessage = err?.error?.message ?? 'Tài khoản đang bị khóa. Vui lòng liên hệ quản trị viên.';
         } else {
           this.errorMessage = 'Không thể kết nối đến máy chủ. Vui lòng thử lại.';
         }

@@ -1,3 +1,4 @@
+import { patientReturnUrl, continueAfterAuthentication } from '../../../../core/utils/auth-return';
 import { Component, OnInit } from '@angular/core';
 import {
   FormBuilder,
@@ -7,7 +8,7 @@ import {
   AbstractControl,
   ValidationErrors,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -197,7 +198,7 @@ function passwordMatchValidator(control: AbstractControl): ValidationErrors | nu
       <div class="register-footer">
         <p>
           Đã có tài khoản?
-          <a routerLink="/login" class="link" id="register-to-login">Đăng nhập</a>
+          <a routerLink="/login" [queryParams]="{returnUrl: returnUrl}" class="link" id="register-to-login">Đăng nhập</a>
         </p>
       </div>
     </div>
@@ -281,11 +282,13 @@ export class RegisterComponent implements OnInit {
   hidePassword = true;
   hideConfirmPassword = true;
   errorMessage = '';
+  returnUrl: string | null = null;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -301,12 +304,14 @@ export class RegisterComponent implements OnInit {
       { validators: passwordMatchValidator }
     );
 
+    this.returnUrl = patientReturnUrl(this.route.snapshot.queryParams['returnUrl']);
     if (this.authService.isAuthenticated()) {
-      this.authService.redirectToHome();
+      continueAfterAuthentication(this.authService, this.router, this.returnUrl);
     }
   }
 
   onSubmit(): void {
+    if (this.isLoading) return;
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
       return;
@@ -320,8 +325,16 @@ export class RegisterComponent implements OnInit {
 
     this.authService.register(request).subscribe({
       next: () => {
-        this.isLoading = false;
-        this.authService.redirectToHome();
+        this.authService.login({username: request.username, password: request.password}).subscribe({
+          next: () => {
+            this.isLoading = false;
+            continueAfterAuthentication(this.authService, this.router, this.returnUrl);
+          },
+          error: () => {
+            this.isLoading = false;
+            this.router.navigate(['/login'], {queryParams: {registered: '1', returnUrl: this.returnUrl}});
+          }
+        });
       },
       error: (err: { error?: { message?: string }; status?: number }) => {
         this.isLoading = false;

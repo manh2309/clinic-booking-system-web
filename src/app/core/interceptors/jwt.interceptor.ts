@@ -23,6 +23,11 @@ export const jwtInterceptor: HttpInterceptorFn = (
     return next(req);
   }
 
+  const path = new URL(req.url, 'https://clinic.invalid').pathname;
+  if (req.method === 'GET' && (/^\/api\/v1\/specialties(?:\/[1-9]\d*)?\/?$/.test(path) || /^\/api\/v1\/doctors(?:\/[1-9]\d*(?:\/available-(?:slots|dates))?)?\/?$/.test(path))) {
+    return next(req.clone({headers: req.headers.delete('Authorization')}));
+  }
+
   const token = storageService.getToken();
 
   // Nếu có token hợp lệ thì clone request và thêm Authorization header
@@ -36,7 +41,7 @@ export const jwtInterceptor: HttpInterceptorFn = (
 
   return next(authReq).pipe(
     catchError((error: unknown) => {
-      if (error instanceof HttpErrorResponse) {
+      if (error instanceof HttpErrorResponse && token && storageService.getToken() === token) {
         if (error.status === 401) {
           // Token hết hạn hoặc không hợp lệ — xóa và về trang đăng nhập
           storageService.clearAll();

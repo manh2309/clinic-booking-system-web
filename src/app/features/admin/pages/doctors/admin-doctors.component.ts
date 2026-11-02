@@ -9,7 +9,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { finalize } from 'rxjs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { NgIf, NgFor } from '@angular/common';
@@ -86,6 +87,10 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
         <mat-card-content>
           <form [formGroup]="doctorForm" (ngSubmit)="onSubmit()" class="doctor-form">
             <div class="form-grid">
+              <p *ngIf="specialtiesError" role="alert" style="grid-column:1/-1">
+                {{ specialtiesError }}
+                <button type="button" mat-button [disabled]="isSaving" (click)="loadSpecialties()">Thử lại</button>
+              </p>
               <mat-form-field appearance="outline">
                 <mat-label>Họ và tên bác sĩ</mat-label>
                 <input matInput formControlName="fullName" placeholder="VD: Bác sĩ Nguyễn Văn An" />
@@ -236,7 +241,8 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
                 <td mat-cell *matCellDef="let d">
                   <mat-slide-toggle
                     [checked]="d.active !== false"
-                    (change)="toggleDoctorStatus(d)"
+                    [disabled]="isSaving || updatingDoctorIds.has(d.id)"
+                    (change)="toggleDoctorStatus(d, $event)"
                     color="primary"
                     matTooltip="Quản lý trạng thái hoạt động tại phòng khám"
                   >
@@ -250,7 +256,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef class="th-actions">Thao tác</th>
                 <td mat-cell *matCellDef="let d" class="td-actions">
-                  <button mat-icon-button color="primary" (click)="startEdit(d)" title="Sửa thông tin">
+                  <button mat-icon-button color="primary" [disabled]="isSaving || updatingDoctorIds.has(d.id)" (click)="startEdit(d)" title="Sửa thông tin">
                     <mat-icon>edit</mat-icon>
                   </button>
                 </td>
@@ -510,10 +516,13 @@ export class AdminDoctorsComponent implements OnInit {
   doctorForm!: FormGroup;
   doctors: DoctorResponse[] = [];
   specialties: SpecialtyResponse[] = [];
+  specialtiesError = '';
   isLoading = false;
   hasError = false;
   errorMessage = '';
   isSaving = false;
+  updatingDoctorIds = new Set<number>();
+  private doctorsRequest = 0;
   isFormOpen = false;
   editMode = false;
   editingDoctorId: number | null = null;
@@ -552,25 +561,30 @@ export class AdminDoctorsComponent implements OnInit {
   }
 
   loadSpecialties(): void {
+    this.specialtiesError = '';
     this.specialtyService.getAll().subscribe({
       next: (r) => {
         this.specialties = r.data ?? [];
       },
+      error: () => { this.specialtiesError = 'Không tải được danh sách chuyên khoa. Vui lòng thử lại.'; },
     });
   }
 
   loadDoctors(): void {
+    const request = ++this.doctorsRequest;
     this.isLoading = true;
     this.hasError = false;
     this.errorMessage = '';
 
     this.doctorService.getAllForAdmin(this.currentPage, this.pageSize).subscribe({
       next: (r) => {
+        if (request !== this.doctorsRequest) return;
         this.doctors = r.data?.content ?? [];
         this.totalDoctors = r.data?.totalElements ?? 0;
         this.isLoading = false;
       },
       error: (err) => {
+        if (request !== this.doctorsRequest) return;
         this.isLoading = false;
         this.hasError = true;
         this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải danh sách bác sĩ.';
@@ -585,6 +599,7 @@ export class AdminDoctorsComponent implements OnInit {
   }
 
   openAddForm(): void {
+    if (this.isSaving) return;
     this.editMode = false;
     this.editingDoctorId = null;
     this.initForm();
@@ -592,6 +607,7 @@ export class AdminDoctorsComponent implements OnInit {
   }
 
   startEdit(doctor: DoctorResponse): void {
+    if (this.isSaving || this.updatingDoctorIds.has(doctor.id)) return;
     this.editMode = true;
     this.editingDoctorId = doctor.id;
     this.isFormOpen = true;
@@ -613,6 +629,7 @@ export class AdminDoctorsComponent implements OnInit {
   }
 
   cancelForm(): void {
+    if (this.isSaving) return;
     this.isFormOpen = false;
     this.editMode = false;
     this.editingDoctorId = null;
@@ -628,6 +645,7 @@ export class AdminDoctorsComponent implements OnInit {
   }
 
   createDoctor(): void {
+    if (this.isSaving) return;
     if (this.doctorForm.invalid) {
       this.doctorForm.markAllAsTouched();
       return;
@@ -653,7 +671,8 @@ export class AdminDoctorsComponent implements OnInit {
   }
 
   updateDoctor(): void {
-    if (!this.editingDoctorId) return;
+    if (this.isSaving || !this.editingDoctorId) return;
+    if (this.doctorForm.invalid) { this.doctorForm.markAllAsTouched(); return; }
     const val = this.doctorForm.value;
     const request: UpdateDoctorRequest = {
       fullName: val.fullName,
@@ -679,11 +698,18 @@ export class AdminDoctorsComponent implements OnInit {
     });
   }
 
-  toggleDoctorStatus(doctor: DoctorResponse): void {
-    const newStatus = doctor.active === false ? true : false;
-    this.adminService.updateDoctorStatus(doctor.id, { active: newStatus }).subscribe({
+  toggleDoctorStatus(doctor: DoctorResponse, event: MatSlideToggleChange): void {
+    const previousStatus = doctor.active !== false;
+    const newStatus = event.checked;
+    event.source.checked = previousStatus;
+    if (this.isSaving || this.updatingDoctorIds.has(doctor.id) || newStatus === previousStatus) return;
+    this.updatingDoctorIds.add(doctor.id);
+    this.adminService.updateDoctorStatus(doctor.id, { active: newStatus }).pipe(
+      finalize(() => this.updatingDoctorIds.delete(doctor.id))
+    ).subscribe({
       next: () => {
         doctor.active = newStatus;
+        event.source.checked = newStatus;
         this.snackBar.open(
           `Đã ${newStatus ? 'kích hoạt' : 'tạm dừng'} tiếp nhận khám cho bác sĩ ${doctor.fullName}!`,
           'Đóng',
@@ -691,6 +717,7 @@ export class AdminDoctorsComponent implements OnInit {
         );
       },
       error: (err: { error?: { message?: string } }) => {
+        event.source.checked = previousStatus;
         this.snackBar.open(err?.error?.message ?? 'Cập nhật trạng thái thất bại', 'Đóng', {
           duration: 3000,
         });

@@ -4,7 +4,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { finalize } from 'rxjs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NgIf, NgFor } from '@angular/common';
@@ -108,7 +109,8 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
                 <div class="status-action-cell">
                   <mat-slide-toggle
                     [checked]="acc.isActive !== false"
-                    (change)="toggleStatus(acc)"
+                    [disabled]="updatingAccountIds.has(acc.id)"
+                    (change)="toggleStatus(acc, $event)"
                     color="primary"
                     matTooltip="Bật/Tắt hoạt động tài khoản"
                   >
@@ -254,6 +256,7 @@ export class AdminAccountsComponent implements OnInit {
   isLoading = false;
   hasError = false;
   errorMessage = '';
+  updatingAccountIds = new Set<number>();
   displayedColumns = ['id', 'username', 'email', 'role', 'status'];
 
   constructor(
@@ -282,11 +285,18 @@ export class AdminAccountsComponent implements OnInit {
     });
   }
 
-  toggleStatus(acc: AdminAccountResponse): void {
-    const newStatus = acc.isActive === false ? true : false;
-    this.adminService.updateAccountStatus(acc.id, { isActive: newStatus }).subscribe({
+  toggleStatus(acc: AdminAccountResponse, event: MatSlideToggleChange): void {
+    const previousStatus = acc.isActive !== false;
+    const newStatus = event.checked;
+    event.source.checked = previousStatus;
+    if (this.updatingAccountIds.has(acc.id) || newStatus === previousStatus) return;
+    this.updatingAccountIds.add(acc.id);
+    this.adminService.updateAccountStatus(acc.id, { isActive: newStatus }).pipe(
+      finalize(() => this.updatingAccountIds.delete(acc.id))
+    ).subscribe({
       next: () => {
         acc.isActive = newStatus;
+        event.source.checked = newStatus;
         this.snackBar.open(
           `Đã ${newStatus ? 'kích hoạt' : 'khóa'} tài khoản ${acc.username} thành công!`,
           'Đóng',
@@ -294,6 +304,7 @@ export class AdminAccountsComponent implements OnInit {
         );
       },
       error: (err: { error?: { message?: string } }) => {
+        event.source.checked = previousStatus;
         this.snackBar.open(err?.error?.message ?? 'Cập nhật trạng thái thất bại', 'Đóng', {
           duration: 3000,
         });

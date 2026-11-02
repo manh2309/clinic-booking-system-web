@@ -8,7 +8,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { finalize } from 'rxjs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NgIf, NgFor } from '@angular/common';
 import { SpecialtyService } from '../../../../core/services/specialty.service';
@@ -173,7 +174,8 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
                 <td mat-cell *matCellDef="let s">
                   <mat-slide-toggle
                     [checked]="s.active !== false"
-                    (change)="toggleStatus(s)"
+                    [disabled]="isSaving || updatingSpecialtyIds.has(s.id)"
+                    (change)="toggleStatus(s, $event)"
                     color="primary"
                     matTooltip="Bật/Tắt hiển thị cho bệnh nhân"
                   >
@@ -187,7 +189,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef class="th-actions">Thao tác</th>
                 <td mat-cell *matCellDef="let s" class="td-actions">
-                  <button mat-icon-button color="primary" (click)="startEdit(s)" title="Chỉnh sửa">
+                  <button mat-icon-button color="primary" [disabled]="isSaving || updatingSpecialtyIds.has(s.id)" (click)="startEdit(s)" title="Chỉnh sửa">
                     <mat-icon>edit</mat-icon>
                   </button>
                 </td>
@@ -426,6 +428,8 @@ export class AdminSpecialtiesComponent implements OnInit {
   hasError = false;
   errorMessage = '';
   isSaving = false;
+  updatingSpecialtyIds = new Set<number>();
+  private listRequest = 0;
   displayedColumns = ['id', 'name', 'status', 'actions'];
 
   constructor(
@@ -444,16 +448,19 @@ export class AdminSpecialtiesComponent implements OnInit {
   }
 
   loadSpecialties(): void {
+    const request = ++this.listRequest;
     this.isLoading = true;
     this.hasError = false;
     this.errorMessage = '';
 
     this.specialtyService.getAllForAdmin().subscribe({
       next: (r) => {
+        if (request !== this.listRequest) return;
         this.specialties = r.data ?? [];
         this.isLoading = false;
       },
       error: (err) => {
+        if (request !== this.listRequest) return;
         this.isLoading = false;
         this.hasError = true;
         this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải danh mục chuyên khoa.';
@@ -462,6 +469,7 @@ export class AdminSpecialtiesComponent implements OnInit {
   }
 
   openAddForm(): void {
+    if (this.isSaving) return;
     this.editMode = false;
     this.editingId = null;
     this.specialtyForm.reset();
@@ -469,6 +477,7 @@ export class AdminSpecialtiesComponent implements OnInit {
   }
 
   startEdit(specialty: SpecialtyResponse): void {
+    if (this.isSaving || this.updatingSpecialtyIds.has(specialty.id)) return;
     this.editMode = true;
     this.editingId = specialty.id;
     this.specialtyForm.patchValue({
@@ -479,6 +488,7 @@ export class AdminSpecialtiesComponent implements OnInit {
   }
 
   cancelForm(): void {
+    if (this.isSaving) return;
     this.isFormOpen = false;
     this.editMode = false;
     this.editingId = null;
@@ -486,6 +496,7 @@ export class AdminSpecialtiesComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.isSaving) return;
     if (this.specialtyForm.invalid) {
       this.specialtyForm.markAllAsTouched();
       return;
@@ -529,11 +540,18 @@ export class AdminSpecialtiesComponent implements OnInit {
     }
   }
 
-  toggleStatus(specialty: SpecialtyResponse): void {
-    const newStatus = specialty.active === false ? true : false;
-    this.specialtyService.updateStatus(specialty.id, { active: newStatus }).subscribe({
+  toggleStatus(specialty: SpecialtyResponse, event: MatSlideToggleChange): void {
+    const previousStatus = specialty.active !== false;
+    const newStatus = event.checked;
+    event.source.checked = previousStatus;
+    if (this.isSaving || this.updatingSpecialtyIds.has(specialty.id) || newStatus === previousStatus) return;
+    this.updatingSpecialtyIds.add(specialty.id);
+    this.specialtyService.updateStatus(specialty.id, { active: newStatus }).pipe(
+      finalize(() => this.updatingSpecialtyIds.delete(specialty.id))
+    ).subscribe({
       next: () => {
         specialty.active = newStatus;
+        event.source.checked = newStatus;
         this.snackBar.open(
           `Đã ${newStatus ? 'hiển thị' : 'tạm ẩn'} chuyên khoa ${specialty.name}!`,
           'Đóng',
@@ -541,6 +559,7 @@ export class AdminSpecialtiesComponent implements OnInit {
         );
       },
       error: (err: { error?: { message?: string } }) => {
+        event.source.checked = previousStatus;
         this.snackBar.open(err?.error?.message ?? 'Cập nhật trạng thái thất bại', 'Đóng', {
           duration: 3000,
         });

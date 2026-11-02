@@ -1,3 +1,5 @@
+import { AuthService } from '../../../../core/services/auth.service';
+import { Role } from '../../../../core/models/user.model';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { clinicDate, clinicInstant } from '../../../../core/services/schedule-planning.service';
@@ -114,6 +116,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
             <!-- Loading slots -->
             <app-loading *ngIf="isLoadingSlots" [diameter]="32" message="Đang tải khung giờ..."></app-loading>
 
+            <p *ngIf="bookingNotice" role="status">{{bookingNotice}}</p>
             <!-- Slots grid -->
             <p *ngIf="slotsError" role="alert" class="booking-error">{{slotsError}}
               <button mat-button (click)="onDateChange()" [disabled]="isBooking">Thử lại</button>
@@ -154,7 +157,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
                 <mat-spinner *ngIf="isBooking" diameter="18"></mat-spinner>
                 <span *ngIf="!isBooking">
                   <mat-icon>calendar_today</mat-icon>
-                  Xác nhận đặt lịch
+                  {{ confirmLabel }}
                 </span>
               </button>
             </div>
@@ -310,6 +313,9 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
   `],
 })
 export class PatientBookingComponent implements OnInit, OnDestroy {
+  bookingNotice = '';
+  private restoreSlot: number | null = null;
+  get confirmLabel(): string { return !this.auth.isAuthenticated() ? 'Đăng nhập để tiếp tục' : this.auth.hasRole(Role.PATIENT) ? 'Xác nhận đặt lịch' : 'Về bàn làm việc'; }
   doctor: DoctorResponse | null = null;
   slots: SlotResponse[] = [];
   selectedSlot: SlotResponse | null = null;
@@ -340,10 +346,18 @@ export class PatientBookingComponent implements OnInit, OnDestroy {
     private router: Router,
     private doctorService: DoctorService,
     private appointmentService: AppointmentService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private auth: AuthService
   ) {}
 
   ngOnInit(): void {
+    const query = this.route.snapshot.queryParams ?? {};
+    const date = query['date'];
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= clinicDate() && this.formatDate(this.dateFromKey(date)) === date) {
+      this.selectedDate = this.dateFromKey(date);
+      const slot = Number(query['slotId']);
+      this.restoreSlot = Number.isSafeInteger(slot) && slot > 0 ? slot : null;
+    }
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (id && !isNaN(id)) {
       this.loadDoctor(id);
@@ -362,7 +376,8 @@ export class PatientBookingComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.doctor = res.data;
         this.isLoadingDoctor = false;
-        this.loadAvailableDates(true);
+        if (this.selectedDate) this.onDateChange();
+        this.loadAvailableDates(!this.selectedDate);
       },
       error: (err: { error?: { message?: string } }) => {
         this.isLoadingDoctor = false;
@@ -414,6 +429,9 @@ export class PatientBookingComponent implements OnInit, OnDestroy {
     if (this.isBooking) return;
     ++this.selectionVersion;
     this.slotsError = '';
+    this.bookingNotice = '';
+    const restore = this.restoreSlot;
+    this.restoreSlot = null;
     const request = ++this.slotRequest;
     this.slotSubscription?.unsubscribe();
     this.selectedSlot = null;
@@ -422,11 +440,19 @@ export class PatientBookingComponent implements OnInit, OnDestroy {
     if (!this.selectedDate || !this.doctor) return;
     this.isLoadingSlots = true;
     const dateStr = this.formatDate(this.selectedDate);
+    this.persistSelection(restore);
     this.slotSubscription = this.doctorService.getAvailableSlots(this.doctor.id, dateStr).subscribe({
       next: (res) => {
         // Response ngày cũ không được ghi đè slot của ngày đang chọn.
         if (request !== this.slotRequest) return;
-        this.slots = res.data ?? [];
+        this.slots = (res.data ?? []).filter(slot => clinicInstant(slot.startAt) > Date.now());
+        if (restore) {
+          this.selectedSlot = this.slots.find(slot => slot.id === restore) ?? null;
+          if (!this.selectedSlot) {
+            this.bookingNotice = 'Khung giờ đã chọn không còn trống. Vui lòng chọn lại giờ khám.';
+            this.persistSelection(null);
+          }
+        }
         this.availableDates = this.availableDates.map(day => day.date === dateStr ? {...day, availableSlots: this.slots.length} : day).filter(day => day.availableSlots > 0);
         this.isLoadingSlots = false;
       },
@@ -442,6 +468,7 @@ export class PatientBookingComponent implements OnInit, OnDestroy {
   selectSlot(slot: SlotResponse): void {
     if (this.isBooking || this.isLoadingSlots || !this.slots.some(item => item.id === slot.id) || clinicInstant(slot.startAt) <= Date.now()) return;
     this.selectedSlot = slot;
+    this.persistSelection(slot.id);
   }
 
   confirmBooking(): void {
@@ -456,6 +483,11 @@ export class PatientBookingComponent implements OnInit, OnDestroy {
       this.snackBar.open('Khung giờ không còn hợp lệ. Hãy chọn lại giờ khám.', 'Đóng', {duration:3000});
       return;
     }
+    if (!this.auth.isAuthenticated()) {
+      this.router.navigate(['/login'], {queryParams: {returnUrl: `/patient/booking/${this.doctor!.id}?date=${this.formatDate(this.selectedDate)}&slotId=${this.selectedSlot.id}`}});
+      return;
+    }
+    if (!this.auth.hasRole(Role.PATIENT)) { this.auth.redirectToHome(); return; }
     this.isBooking = true;
     this.appointmentService.book({ slotId: this.selectedSlot.id }).subscribe({
       next: () => {
@@ -479,6 +511,11 @@ export class PatientBookingComponent implements OnInit, OnDestroy {
         this.loadAvailableDates();
       },
     });
+  }
+
+  private persistSelection(slotId: number | null): void {
+    if (!this.selectedDate) return;
+    this.router.navigate([], {relativeTo: this.route, queryParams: {date: this.formatDate(this.selectedDate), slotId}, queryParamsHandling: 'merge', replaceUrl: true});
   }
 
   private formatDate(date: Date): string {

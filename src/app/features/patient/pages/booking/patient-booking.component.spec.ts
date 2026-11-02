@@ -1,3 +1,4 @@
+import { AuthService } from '../../../../core/services/auth.service';
 import { Subject, of, throwError } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -17,7 +18,7 @@ describe('Booking date changes', () => {
     appointments = jasmine.createSpyObj<AppointmentService>('AppointmentService', ['book']);
     component = new PatientBookingComponent({} as ActivatedRoute,
       jasmine.createSpyObj<Router>('Router', ['navigate']), doctor, appointments,
-      jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']));
+      jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']), {isAuthenticated: () => true, hasRole: () => true} as unknown as AuthService);
     component.doctor = {id:1,fullName:'Doctor',active:true};
   });
 
