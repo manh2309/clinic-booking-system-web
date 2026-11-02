@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://your-production-domain.com/api/v1',
+  apiBaseUrl: 'https://clinic-booking-api-c2ox.onrender.com/api/v1',
 };
