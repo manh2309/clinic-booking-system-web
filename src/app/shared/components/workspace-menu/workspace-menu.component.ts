@@ -10,7 +10,7 @@ import { MatMenuModule } from '@angular/material/menu';
   imports:[NgFor, RouterLink, RouterLinkActive, MatButtonModule, MatIconModule, MatMenuModule],
   template:`<button mat-icon-button [matMenuTriggerFor]="navigation" aria-label="Mở menu điều hướng"><mat-icon>menu</mat-icon></button>
     <mat-menu #navigation="matMenu">
-      <a mat-menu-item *ngFor="let item of items" [routerLink]="item.route" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <a mat-menu-item *ngFor="let item of items; trackBy: trackItem" [routerLink]="item.route" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
         <mat-icon>{{ item.icon }}</mat-icon><span>{{ item.label }}</span>
       </a>
     </mat-menu>`,
@@ -18,4 +18,5 @@ import { MatMenuModule } from '@angular/material/menu';
 })
 export class WorkspaceMenuComponent {
   @Input() items: ReadonlyArray<{label:string; route:string; icon:string}> = [];
+  trackItem(_index: number, item: {route: string}): string { return item.route; }
 }

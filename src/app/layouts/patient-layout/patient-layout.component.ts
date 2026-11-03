@@ -58,7 +58,7 @@ interface NavItem {
           <!-- Navigation Links (desktop) -->
           <nav class="navbar-nav">
             <a
-              *ngFor="let item of navItems"
+              *ngFor="let item of navItems; trackBy: trackNavItem"
               [routerLink]="item.route"
               routerLinkActive="nav-link--active"
               [routerLinkActiveOptions]="{exact: true}"
@@ -542,17 +542,24 @@ export class PatientLayoutComponent implements OnInit {
     { label: 'Trang chủ',   route: '/patient/home',            icon: 'home' },
     { label: 'Tìm bác sĩ', route: '/patient/doctors',         icon: 'medical_services' },
   ];
+  private readonly patientNavItems: NavItem[] = [...this.publicNavItems,
+    {label:'Lịch khám',route:'/patient/appointments',icon:'calendar_today'},
+    {label:'Hồ sơ bệnh án',route:'/patient/medical-records',icon:'folder_shared'}];
+  private readonly doctorNavItems: NavItem[] = [...this.publicNavItems,
+    {label:'Bàn làm việc',route:ROLE_HOME_ROUTES[Role.DOCTOR],icon:'dashboard'}];
+  private readonly adminNavItems: NavItem[] = [...this.publicNavItems,
+    {label:'Bàn làm việc',route:ROLE_HOME_ROUTES[Role.ADMIN],icon:'dashboard'}];
 
   get signedIn(): boolean { return this.authService.isAuthenticated(); }
   get isPatient(): boolean { return this.signedIn && this.currentUser?.role === Role.PATIENT; }
   get workspaceRoute(): string { return this.currentUser ? ROLE_HOME_ROUTES[this.currentUser.role] : '/login'; }
   get returnUrl(): string | null { return patientReturnUrl(this.router.url); }
   get navItems(): NavItem[] {
-    return this.isPatient ? [...this.publicNavItems,
-      {label:'Lịch khám',route:'/patient/appointments',icon:'calendar_today'},
-      {label:'Hồ sơ bệnh án',route:'/patient/medical-records',icon:'folder_shared'}]
-      : this.signedIn ? [...this.publicNavItems,{label:'Bàn làm việc',route:this.workspaceRoute,icon:'dashboard'}] : this.publicNavItems;
+    if (!this.signedIn) return this.publicNavItems;
+    if (this.isPatient) return this.patientNavItems;
+    return this.currentUser?.role === Role.DOCTOR ? this.doctorNavItems : this.adminNavItems;
   }
+  trackNavItem(_index: number, item: NavItem): string { return item.route; }
 
   constructor(private authService: AuthService, private router: Router, private destroy: DestroyRef) {}
 

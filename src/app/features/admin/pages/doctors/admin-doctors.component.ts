@@ -412,7 +412,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
     }
 
     .th-id { width: 50px; }
-    .th-actions, .td-actions { width: 80px; text-align: center; }
+    .th-actions, .td-actions { width: 96px; min-width: 96px; white-space: nowrap; text-align: center; }
 
     .mat-mdc-header-cell {
       font-weight: 700;
