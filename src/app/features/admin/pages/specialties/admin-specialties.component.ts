@@ -1,3 +1,5 @@
+import { DirectoryService } from '../../../../core/services/directory.service';
+import { ListToolsComponent, ListFilters } from '../../../../shared/components/list-tools/list-tools.component';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -21,7 +23,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 @Component({
   selector: 'app-admin-specialties',
   standalone: true,
-  imports: [
+  imports: [ListToolsComponent,
     ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
@@ -119,7 +121,8 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
       </mat-card>
 
       <!-- TABLE CARD (PRIMARY CONTENT) -->
-      <mat-card class="table-card">
+      <app-list-tools label="Tìm tên chuyên khoa" [showActive]="true" [busy]="isLoading" (search)="searchList($event)"></app-list-tools>
+<mat-card class="table-card">
         <mat-card-content>
           <!-- Loading State -->
           <app-loading *ngIf="isLoading" message="Đang tải danh mục chuyên khoa..."></app-loading>
@@ -200,7 +203,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
             </table>
           </div>
         </mat-card-content>
-      </mat-card>
+      </mat-card><app-list-tools [paginatorOnly]="true" [total]="total" [page]="page" [size]="size" [busy]="isLoading" (pageChange)="pageList($event)"></app-list-tools>
     </div>
   `,
   styles: [`
@@ -419,6 +422,10 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
   `],
 })
 export class AdminSpecialtiesComponent implements OnInit {
+  page=0;size=20;total=0;
+  filters:ListFilters={keyword:"",active:"",from:"",to:""};
+  searchList(f:ListFilters){this.filters=f;this.page=0;this.loadSpecialties();}
+  pageList(e:{pageIndex:number;pageSize:number}){this.page=e.pageIndex;this.size=e.pageSize;this.loadSpecialties();}
   specialtyForm!: FormGroup;
   specialties: SpecialtyResponse[] = [];
   editingId: number | null = null;
@@ -432,7 +439,7 @@ export class AdminSpecialtiesComponent implements OnInit {
   private listRequest = 0;
   displayedColumns = ['id', 'name', 'status', 'actions'];
 
-  constructor(
+  constructor(private directory:DirectoryService,
     private fb: FormBuilder,
     private specialtyService: SpecialtyService,
     private snackBar: MatSnackBar
@@ -453,10 +460,11 @@ export class AdminSpecialtiesComponent implements OnInit {
     this.hasError = false;
     this.errorMessage = '';
 
-    this.specialtyService.getAllForAdmin().subscribe({
+    this.directory.search<SpecialtyResponse>("specialties",this.page,this.size,this.filters).subscribe({
       next: (r) => {
         if (request !== this.listRequest) return;
-        this.specialties = r.data ?? [];
+        this.specialties = r.data.content ?? [];this.total=r.data.totalElements;
+        if(this.page>0 && this.page*this.size>=this.total){this.page=Math.max(0,Math.ceil(this.total/this.size)-1);this.loadSpecialties();return;}
         this.isLoading = false;
       },
       error: (err) => {
@@ -551,6 +559,7 @@ export class AdminSpecialtiesComponent implements OnInit {
     ).subscribe({
       next: () => {
         specialty.active = newStatus;
+        if(this.filters.active)this.loadSpecialties();
         event.source.checked = newStatus;
         this.snackBar.open(
           `Đã ${newStatus ? 'hiển thị' : 'tạm ẩn'} chuyên khoa ${specialty.name}!`,

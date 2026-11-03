@@ -1,3 +1,5 @@
+import { ListToolsComponent, ListFilters } from '../../../../shared/components/list-tools/list-tools.component';
+import { ResultFileComponent } from '../../../../shared/components/result-file/result-file.component';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MedicalRecordResponse } from '../../../../core/services/medical-record.service';
 import { FormsModule } from '@angular/forms';
@@ -22,7 +24,7 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
 @Component({
   selector: 'app-doctor-appointments',
   standalone: true,
-  imports: [
+  imports: [ListToolsComponent,ResultFileComponent,
     ReactiveFormsModule, FormsModule, MatCardModule, MatButtonModule, MatIconModule,
     MatMenuModule, MatPaginatorModule, MatSnackBarModule,
     NgIf, NgFor, DatePipe,
@@ -44,7 +46,7 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
           <p>{{ recordTarget.patientFullName || ('Bệnh nhân #' + recordTarget.patientAccountId) }}</p>
           <app-loading *ngIf="recordLoading" message="Đang tải kết quả khám..."></app-loading>
           <p *ngIf="recordError" role="alert">{{ recordError }}</p>
-          <ng-container *ngIf="recordView">
+          <ng-container *ngIf="recordView"><app-result-file [appointmentId]="recordTarget.id" [doctor]="true"></app-result-file>
             <h3>Chẩn đoán</h3><p class="record-text">{{ recordView.diagnosis }}</p>
             <ng-container *ngIf="recordView.examinationNotes"><h3>Ghi nhận khi khám</h3><p class="record-text">{{ recordView.examinationNotes }}</p></ng-container>
             <ng-container *ngIf="recordView.treatmentAdvice"><h3>Hướng dẫn điều trị</h3><p class="record-text">{{ recordView.treatmentAdvice }}</p></ng-container>
@@ -60,7 +62,8 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
           <button mat-button (click)="closeRecord()" [disabled]="updatingIds.has(recordTarget.id)">Đóng</button>
         </mat-card-content>
       </mat-card>
-      <label class="status-filter">Trạng thái
+      <app-list-tools label="Tìm tên bệnh nhân, số điện thoại hoặc mã lịch" [showDates]="true" (search)="searchList($event)"></app-list-tools>
+    <label class="status-filter">Trạng thái
         <select [ngModel]="statusFilter" (ngModelChange)="setStatusFilter($event)" [disabled]="isLoading">
           <option value="">Tất cả</option><option value="PENDING">Chờ xác nhận</option>
           <option value="CONFIRMED">Đã xác nhận</option><option value="COMPLETED">Hoàn thành</option>
@@ -147,7 +150,7 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
         </div>
 
         <mat-paginator
-          *ngIf="totalElements > pageSize"
+          *ngIf="!isLoading && !hasError"
           [length]="totalElements"
           [pageSize]="pageSize"
           [pageIndex]="currentPage"
@@ -227,6 +230,8 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
   }
   private clock?: ReturnType<typeof setInterval>;
   now = Date.now();
+  filters: ListFilters = {keyword:'',active:'',from:'',to:''};
+  searchList(value: ListFilters): void { this.filters=value; this.currentPage=0;this.load(); }
   appointments: AppointmentResponse[] = [];
   isLoading = false;
   hasError = false;
@@ -290,7 +295,7 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
     this.hasError = false;
     this.errorMessage = '';
 
-    this.appointmentService.getDoctorAppointments(this.currentPage, this.pageSize, this.statusFilter || undefined).subscribe({
+    this.appointmentService.getDoctorAppointments(this.currentPage, this.pageSize, this.statusFilter || undefined, this.filters).subscribe({
       next: (res) => {
         if (request !== this.listRequest) return;
         this.appointments = res.data?.content ?? [];

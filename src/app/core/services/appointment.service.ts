@@ -1,3 +1,4 @@
+import { ListFilters } from '../../shared/components/list-tools/list-tools.component';
 import { MedicalRecordRequest, MedicalRecordResponse } from './medical-record.service';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -58,9 +59,10 @@ export class AppointmentService {
   }
 
   /** GET /doctors/me/appointments?page&size — lịch hẹn của bác sĩ hiện tại */
-  getDoctorAppointments(page = 0, size = 10, status?: AppointmentStatus): Observable<ApiResponse<PageResponse<AppointmentResponse>>> {
+  getDoctorAppointments(page = 0, size = 10, status?: AppointmentStatus, filters?: ListFilters): Observable<ApiResponse<PageResponse<AppointmentResponse>>> {
     let params = new HttpParams().set('page', page).set('size', size);
     if (status) params = params.set('status', status);
+    if (filters) for (const key of ['keyword','from','to'] as const) if(filters[key]) params=params.set(key,filters[key]);
     return this.http.get<ApiResponse<PageResponse<AppointmentResponse>>>(
       this.doctorUrl,
       { params }
@@ -87,9 +89,10 @@ export class AppointmentService {
     );
   }
 
-  getAdminAppointments(page = 0, size = 20, status?: AppointmentStatus, doctorId?: number): Observable<ApiResponse<PageResponse<AppointmentResponse>>> {
+  getAdminAppointments(page = 0, size = 20, status?: AppointmentStatus, doctorId?: number, filters?: ListFilters): Observable<ApiResponse<PageResponse<AppointmentResponse>>> {
     let params = new HttpParams().set('page', page).set('size', size);
     if (status) params = params.set('status', status);
+    if (filters) for (const key of ['keyword','from','to'] as const) if(filters[key]) params=params.set(key,filters[key]);
     if (doctorId) params = params.set('doctorId', doctorId);
     return this.http.get<ApiResponse<PageResponse<AppointmentResponse>>>(`${environment.apiBaseUrl}/admin/appointments`, { params });
   }

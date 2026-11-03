@@ -1,3 +1,4 @@
+import { ResultFileComponent } from '../../../../shared/components/result-file/result-file.component';
 import { Component, OnInit } from '@angular/core';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,7 +11,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 
 @Component({
   selector:'app-patient-medical-records', standalone:true,
-  imports:[NgIf, NgFor, DatePipe, MatButtonModule, MatCardModule, MatPaginatorModule, PageHeaderComponent, LoadingComponent, EmptyStateComponent],
+  imports:[ResultFileComponent,NgIf, NgFor, DatePipe, MatButtonModule, MatCardModule, MatPaginatorModule, PageHeaderComponent, LoadingComponent, EmptyStateComponent],
   template:`<app-page-header title="Kết quả khám" subtitle="Kết luận và hướng dẫn của bác sĩ sau mỗi lần khám"></app-page-header>
     <app-loading *ngIf="loading" message="Đang tải kết quả khám..."></app-loading>
     <div *ngIf="!loading && error" role="alert">{{ error }} <button mat-button (click)="load()">Thử lại</button></div>
@@ -19,7 +20,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
       <mat-card *ngFor="let record of records" class="record-card">
         <mat-card-content>
           <h2>Lịch hẹn #{{ record.appointmentId }} · {{ record.startAt | date:'dd/MM/yyyy HH:mm' }}</h2>
-          <p>Bác sĩ {{ record.doctorName }}</p>
+          <p>Bác sĩ {{ record.doctorName }}</p><app-result-file [appointmentId]="record.appointmentId"></app-result-file>
           <h3>Chẩn đoán</h3><p class="record-text">{{ record.diagnosis }}</p>
           <ng-container *ngIf="record.examinationNotes"><h3>Ghi nhận khi khám</h3><p class="record-text">{{ record.examinationNotes }}</p></ng-container>
           <ng-container *ngIf="record.treatmentAdvice"><h3>Hướng dẫn điều trị</h3><p class="record-text">{{ record.treatmentAdvice }}</p></ng-container>

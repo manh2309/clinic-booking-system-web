@@ -1,3 +1,5 @@
+import { MatPaginatorIntl } from '@angular/material/paginator';
+import { vietnamesePaginator } from './shared/components/list-tools/list-tools.component';
 import { ApplicationConfig } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
@@ -7,6 +9,7 @@ import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    {provide:MatPaginatorIntl,useFactory:vietnamesePaginator},
     // Router với tất cả routes và hỗ trợ bind route params vào component input
     provideRouter(routes, withComponentInputBinding()),
 

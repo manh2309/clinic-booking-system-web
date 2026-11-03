@@ -1,3 +1,4 @@
+import {HttpClientTestingModule} from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -18,7 +19,7 @@ const page = (content: any[]) => ({code:1000, message:'Success', data:{content, 
 describe('Clinical screen rendering at content widths', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports:[DoctorAppointmentsComponent, PatientMedicalRecordsComponent, PatientNotificationsComponent, NoopAnimationsModule, RouterTestingModule],
+      imports:[HttpClientTestingModule,DoctorAppointmentsComponent, PatientMedicalRecordsComponent, PatientNotificationsComponent, NoopAnimationsModule, RouterTestingModule],
       providers:[
         {provide:AppointmentService, useValue:{getDoctorAppointments:() => of(page([])), queue:() => of({data:{date:'2030-01-01',activeVisit:null,waiting:page([]).data}})}},
         {provide:DoctorService, useValue:{getMine:() => of({data:{active:true}})}},

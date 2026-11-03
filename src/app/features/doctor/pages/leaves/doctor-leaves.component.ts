@@ -1,9 +1,10 @@
+import {ListToolsComponent,ListFilters} from '../../../../shared/components/list-tools/list-tools.component';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { SchedulePlanningService, Leave, leaveLabels, clinicInstant, clinicDate } from '../../../../core/services/schedule-planning.service';
-@Component({ selector: 'app-doctor-leaves', standalone: true, imports: [CommonModule, FormsModule, MatButtonModule], template: `
+@Component({ selector: 'app-doctor-leaves', standalone: true, imports: [ListToolsComponent,CommonModule, FormsModule, MatButtonModule], template: `
  <h1>Đơn nghỉ</h1><p>Gửi trước giờ bắt đầu, theo mốc 30 phút. Các khung giờ trống trong khoảng nghỉ được tạm giữ khi chờ duyệt.</p>
  <form (ngSubmit)="submit()" #form="ngForm">
  <div class="date-group"><label>Từ ngày<input type="date" name="startDate" [ngModel]="startDate" (ngModelChange)="changeStartDate($event)" [min]="today" [disabled]="busy" required></label>
@@ -15,11 +16,16 @@ import { SchedulePlanningService, Leave, leaveLabels, clinicInstant, clinicDate 
  <p *ngIf="message" role="status">{{message}}</p><p *ngIf="error" role="alert">{{error}}</p>
  <button mat-button (click)="load()" [disabled]="busy||loading">Làm mới</button><p *ngIf="loading">Đang tải đơn nghỉ...</p>
  <p *ngIf="!loading&&!loadError&&!leaves.length">Chưa có đơn nghỉ.</p><p *ngIf="loadError" role="alert">{{loadError}}</p>
- <article *ngFor="let l of leaves"><strong>{{l.startAt|date:'dd/MM/yyyy HH:mm'}} – {{l.endAt|date:'dd/MM/yyyy HH:mm'}}</strong>
+ <app-list-tools label="Tìm lý do nghỉ hoặc phản hồi" [showDates]="true" (search)="filters=$event;page=0"></app-list-tools>
+ <label>Trạng thái <select [(ngModel)]="status" (ngModelChange)="page=0"><option value="">Tất cả</option><option *ngFor="let key of statusKeys" [value]="key">{{labels[key]}}</option></select></label>
+ <article *ngFor="let l of filtered.slice(page*size,(page+1)*size)"><strong>{{l.startAt|date:'dd/MM/yyyy HH:mm'}} – {{l.endAt|date:'dd/MM/yyyy HH:mm'}}</strong>
  <p>{{labels[l.status] || l.status}} · {{l.reason}}</p><p *ngIf="l.reviewReason">Phản hồi: {{l.reviewReason}}</p>
  <button mat-stroked-button *ngIf="l.status==='PENDING'" [disabled]="busy" (click)="withdraw(l)">Rút đơn</button></article>
+<app-list-tools [paginatorOnly]="true" [total]="filtered.length" [page]="page" [size]="size" (pageChange)="page=$event.pageIndex;size=$event.pageSize"></app-list-tools>
  `, styles: [`:host{display:block;max-width:1000px}h1{font-size:24px}p{color:#64748b;overflow-wrap:anywhere}form,article{background:white;border:1px solid #e2e8f0;padding:20px;border-radius:12px;margin:16px 0}form{display:grid;gap:16px;grid-template-columns:1fr 1fr}label{display:flex;flex-direction:column;gap:8px;min-width:0}label:has(textarea){grid-column:1/-1}input,select,textarea{box-sizing:border-box;width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:8px;font:inherit}button{justify-self:start}.date-group{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px}p[role=alert]{color:#b91c1c}@media(max-width:600px){form{grid-template-columns:1fr;padding:14px}.date-group{grid-template-columns:minmax(0,1fr) 120px}}`] })
 export class DoctorLeavesComponent implements OnInit {
+    page=0;size=10;status='';statusKeys=Object.keys(leaveLabels) as Array<keyof typeof leaveLabels>;filters:ListFilters={keyword:'',active:'',from:'',to:''};
+    get filtered(){const q=this.filters.keyword.trim().toLocaleLowerCase('vi');return this.leaves.filter(l=>(!this.status||l.status===this.status)&&(!this.filters.from||l.endAt.slice(0,10)>=this.filters.from)&&(!this.filters.to||l.startAt.slice(0,10)<=this.filters.to)&&(!q||((l.reason||'')+' '+(l.reviewReason||'')).toLocaleLowerCase('vi').includes(q)));}
     leaves: Leave[] = [];
     labels = leaveLabels;
     startDate = '';

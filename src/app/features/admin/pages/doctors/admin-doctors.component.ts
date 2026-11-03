@@ -1,3 +1,5 @@
+import { DirectoryService } from '../../../../core/services/directory.service';
+import { ListToolsComponent, ListFilters } from '../../../../shared/components/list-tools/list-tools.component';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -30,7 +32,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 @Component({
   selector: 'app-admin-doctors',
   standalone: true,
-  imports: [
+  imports: [ListToolsComponent,
     ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
@@ -182,7 +184,8 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
       </mat-card>
 
       <!-- DOCTORS TABLE (PRIMARY CONTENT) -->
-      <mat-card class="table-card">
+      <app-list-tools label="Tìm tên bác sĩ hoặc chuyên khoa" [showActive]="true" [busy]="isLoading" (search)="searchList($event)"></app-list-tools>
+<mat-card class="table-card">
         <mat-card-content>
           <!-- Loading State -->
           <app-loading *ngIf="isLoading" message="Đang tải danh sách bác sĩ..."></app-loading>
@@ -513,6 +516,9 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
   `],
 })
 export class AdminDoctorsComponent implements OnInit {
+  filters:ListFilters={keyword:"",active:"",from:"",to:""};
+  searchList(f:ListFilters){this.filters=f;this.currentPage=0;this.loadDoctors();}
+  pageList(e:{pageIndex:number;pageSize:number}){this.currentPage=e.pageIndex;this.pageSize=e.pageSize;this.loadDoctors();}
   doctorForm!: FormGroup;
   doctors: DoctorResponse[] = [];
   specialties: SpecialtyResponse[] = [];
@@ -533,7 +539,7 @@ export class AdminDoctorsComponent implements OnInit {
   pageSize = 20;
   totalDoctors = 0;
 
-  constructor(
+  constructor(private directory:DirectoryService,
     private fb: FormBuilder,
     private adminService: AdminService,
     private doctorService: DoctorService,
@@ -576,11 +582,12 @@ export class AdminDoctorsComponent implements OnInit {
     this.hasError = false;
     this.errorMessage = '';
 
-    this.doctorService.getAllForAdmin(this.currentPage, this.pageSize).subscribe({
+    this.directory.search<DoctorResponse>("doctors",this.currentPage,this.pageSize,this.filters).subscribe({
       next: (r) => {
         if (request !== this.doctorsRequest) return;
         this.doctors = r.data?.content ?? [];
         this.totalDoctors = r.data?.totalElements ?? 0;
+        if(this.currentPage>0 && this.currentPage*this.pageSize>=this.totalDoctors){this.currentPage=Math.max(0,Math.ceil(this.totalDoctors/this.pageSize)-1);this.loadDoctors();return;}
         this.isLoading = false;
       },
       error: (err) => {

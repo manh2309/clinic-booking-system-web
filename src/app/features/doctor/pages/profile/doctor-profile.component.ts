@@ -1,3 +1,4 @@
+import { AccountSettingsComponent } from '../../../../shared/components/account-settings/account-settings.component';
 import { Component, OnInit } from '@angular/core';
 import { NgIf } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -9,7 +10,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
 
 @Component({
   selector:'app-doctor-profile', standalone:true,
-  imports:[NgIf, MatCardModule, MatButtonModule, PageHeaderComponent, LoadingComponent],
+  imports:[AccountSettingsComponent,NgIf, MatCardModule, MatButtonModule, PageHeaderComponent, LoadingComponent],
   template:`<app-page-header title="Hồ sơ chuyên môn" subtitle="Thông tin bác sĩ do quản trị viên quản lý"></app-page-header>
     <app-loading *ngIf="loading" message="Đang tải hồ sơ bác sĩ..."></app-loading>
     <p *ngIf="!loading && error" role="alert">{{ error }} <button mat-button (click)="load()">Thử lại</button></p>
@@ -25,7 +26,7 @@ import { LoadingComponent } from '../../../../shared/components/loading/loading.
         <p *ngIf="profile.active === false" role="status">Bạn vẫn xem được lịch sử. Các thao tác tiếp nhận khám đang tạm khóa.</p>
         <p>Liên hệ quản trị viên nếu cần điều chỉnh thông tin chuyên môn.</p>
       </mat-card-content>
-    </mat-card>`,
+    </mat-card><app-account-settings></app-account-settings>`,
   styles:[`h2{font-size:20px;} dl{display:grid;grid-template-columns:170px minmax(0,1fr);gap:16px;} dt{color:#64748b;} dd{margin:0;overflow-wrap:anywhere;}.description{white-space:pre-wrap;} @media(max-width:600px){dl{grid-template-columns:1fr;gap:8px;}dd{margin-bottom:12px;}}`],
 })
 export class DoctorProfileComponent implements OnInit {

@@ -1,3 +1,5 @@
+import { DirectoryService } from '../../../../core/services/directory.service';
+import { ListToolsComponent, ListFilters } from '../../../../shared/components/list-tools/list-tools.component';
 import { Component, OnInit } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,7 +20,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 @Component({
   selector: 'app-admin-accounts',
   standalone: true,
-  imports: [
+  imports: [ListToolsComponent,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -57,7 +59,8 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
         </button>
       </div>
 
-      <mat-card class="table-card" *ngIf="!isLoading && !hasError">
+      <app-list-tools label="Tìm tài khoản, email hoặc điện thoại" [showActive]="true" [busy]="isLoading" (search)="searchList($event)"></app-list-tools>
+<mat-card class="table-card" *ngIf="!isLoading && !hasError">
         <mat-card-content>
           <app-empty-state
             *ngIf="accounts.length === 0"
@@ -126,7 +129,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
           </table>
         </mat-card-content>
-      </mat-card>
+      </mat-card><app-list-tools [paginatorOnly]="true" [total]="total" [page]="page" [size]="size" [busy]="isLoading" (pageChange)="pageList($event)"></app-list-tools>
     </div>
   `,
   styles: [`
@@ -136,7 +139,8 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
       box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05) !important;
       overflow: hidden;
     }
-    .table-card mat-card-content { padding: 0 !important; }
+    .table-card mat-card-content { padding: 0 !important;overflow-x:auto;max-width:100%; }
+    :host{display:block;min-width:0;max-width:100%}.mat-mdc-header-cell{white-space:nowrap}.status-action-cell{white-space:nowrap;}
 
     .accounts-table { width: 100%; }
 
@@ -252,6 +256,10 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
   `],
 })
 export class AdminAccountsComponent implements OnInit {
+  page=0;size=20;total=0;
+  filters:ListFilters={keyword:"",active:"",from:"",to:""};
+  searchList(f:ListFilters){this.filters=f;this.page=0;this.load();}
+  pageList(e:{pageIndex:number;pageSize:number}){this.page=e.pageIndex;this.size=e.pageSize;this.load();}
   accounts: AdminAccountResponse[] = [];
   isLoading = false;
   hasError = false;
@@ -259,7 +267,7 @@ export class AdminAccountsComponent implements OnInit {
   updatingAccountIds = new Set<number>();
   displayedColumns = ['id', 'username', 'email', 'role', 'status'];
 
-  constructor(
+  constructor(private directory:DirectoryService,
     private adminService: AdminService,
     private snackBar: MatSnackBar
   ) {}
@@ -268,16 +276,21 @@ export class AdminAccountsComponent implements OnInit {
     this.load();
   }
 
+  private listRequest=0;
   load(): void {
+    const request=++this.listRequest;
     this.isLoading = true;
     this.hasError = false;
     this.errorMessage = '';
-    this.adminService.getAllAccounts().subscribe({
+    this.directory.search<AdminAccountResponse>("accounts",this.page,this.size,this.filters).subscribe({
       next: (r) => {
-        this.accounts = r.data ?? [];
+        if(request!==this.listRequest)return;
+        this.accounts = r.data.content ?? [];this.total=r.data.totalElements;
+        if(this.page>0 && this.page*this.size>=this.total){this.page=Math.max(0,Math.ceil(this.total/this.size)-1);this.load();return;}
         this.isLoading = false;
       },
       error: (err: { error?: { message?: string } }) => {
+        if(request!==this.listRequest)return;
         this.isLoading = false;
         this.hasError = true;
         this.errorMessage = err?.error?.message ?? 'Không thể kết nối đến máy chủ để tải danh sách tài khoản.';
@@ -296,6 +309,7 @@ export class AdminAccountsComponent implements OnInit {
     ).subscribe({
       next: () => {
         acc.isActive = newStatus;
+        if(this.filters.active)this.load();
         event.source.checked = newStatus;
         this.snackBar.open(
           `Đã ${newStatus ? 'kích hoạt' : 'khóa'} tài khoản ${acc.username} thành công!`,

@@ -1,3 +1,4 @@
+import { DirectoryService } from '../../../../core/services/directory.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -25,7 +26,7 @@ describe('Admin account status toggle', () => {
     snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
     await TestBed.configureTestingModule({
       imports: [AdminAccountsComponent, NoopAnimationsModule],
-      providers: [{provide: AdminService, useValue: service}, {provide: MatSnackBar, useValue: snackBar}],
+      providers: [{provide:DirectoryService,useValue:{search:()=>of({data:{content:[account],totalElements:1}})}},{provide: AdminService, useValue: service}, {provide: MatSnackBar, useValue: snackBar}],
     }).overrideComponent(AdminAccountsComponent, {
       add: {providers: [{provide: MatSnackBar, useValue: snackBar}]},
     }).compileComponents();

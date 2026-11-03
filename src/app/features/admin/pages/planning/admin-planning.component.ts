@@ -1,3 +1,4 @@
+import {ListToolsComponent,ListFilters} from '../../../../shared/components/list-tools/list-tools.component';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -5,7 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { DoctorService } from '../../../../core/services/doctor.service';
 import { DoctorResponse } from '../../../../core/models/domain.model';
 import { SchedulePlanningService, WeeklyRule, Leave, Affected, leaveLabels, clinicDate } from '../../../../core/services/schedule-planning.service';
-@Component({ selector: 'app-admin-planning', standalone: true, imports: [CommonModule, FormsModule, MatButtonModule], template: `
+@Component({ selector: 'app-admin-planning', standalone: true, imports: [ListToolsComponent,CommonModule, FormsModule, MatButtonModule], template: `
  <h1>Lịch tuần và duyệt nghỉ</h1><p>Lịch được tạo trước 30 ngày, mỗi lượt khám dự kiến 30 phút. Tối đa 8 giờ/ngày; chia sáng/chiều để chừa giờ nghỉ trưa.</p>
  <section><h2>Mẫu lịch tuần</h2>
  <p *ngIf="doctorError" role="alert">{{doctorError}} <button mat-button (click)="loadDoctors()">Thử lại</button></p>
@@ -31,9 +32,10 @@ import { SchedulePlanningService, WeeklyRule, Leave, Affected, leaveLabels, clin
  </section>
  <p *ngIf="error" role="alert">{{error}}</p><p *ngIf="message" role="status">{{message}}</p><ul *ngIf="conflicts.length"><li *ngFor="let c of conflicts">{{c}}</li></ul>
  <section><div class="actions"><h2>Đơn nghỉ bác sĩ</h2><button mat-button (click)="loadLeaves()" [disabled]="busy||leavesLoading">Làm mới</button></div><p *ngIf="leavesLoading">Đang tải đơn nghỉ...</p><p *ngIf="leavesError" role="alert">{{leavesError}}</p><p *ngIf="!leavesLoading&&!leavesError&&!leaves.length">Chưa có đơn nghỉ.</p>
- <label>Lọc trạng thái<select [(ngModel)]="statusFilter"><option value="">Tất cả</option><option *ngFor="let s of statuses" [value]="s">{{labels[s]}}</option></select></label>
- <article *ngFor="let l of filteredLeaves"><strong>{{l.doctorName}} (#{{l.doctorId}}) · {{labels[l.status]}}</strong><p>{{l.startAt|date:'dd/MM/yyyy HH:mm'}} – {{l.endAt|date:'dd/MM/yyyy HH:mm'}}</p><p>{{l.reason}}</p><p *ngIf="l.reviewReason">Phản hồi: {{l.reviewReason}}</p><button mat-stroked-button [disabled]="busy" (click)="inspect(l)">{{l.status==='PENDING'?'Xem ảnh hưởng và xử lý':'Xem lịch bị ảnh hưởng'}}</button></article>
- </section>
+ <label>Lọc trạng thái<select [(ngModel)]="statusFilter" (ngModelChange)="leavePage=0"><option value="">Tất cả</option><option *ngFor="let s of statuses" [value]="s">{{labels[s]}}</option></select></label>
+ <app-list-tools label="Tìm bác sĩ hoặc lý do nghỉ" [showDates]="true" (search)="leaveFilters=$event;leavePage=0"></app-list-tools>
+ <article *ngFor="let l of filteredLeaves.slice(leavePage*leaveSize,(leavePage+1)*leaveSize)"><strong>{{l.doctorName}} (#{{l.doctorId}}) · {{labels[l.status]}}</strong><p>{{l.startAt|date:'dd/MM/yyyy HH:mm'}} – {{l.endAt|date:'dd/MM/yyyy HH:mm'}}</p><p>{{l.reason}}</p><p *ngIf="l.reviewReason">Phản hồi: {{l.reviewReason}}</p><button mat-stroked-button [disabled]="busy" (click)="inspect(l)">{{l.status==='PENDING'?'Xem ảnh hưởng và xử lý':'Xem lịch bị ảnh hưởng'}}</button></article>
+ <app-list-tools [paginatorOnly]="true" [total]="filteredLeaves.length" [page]="leavePage" [size]="leaveSize" (pageChange)="leavePage=$event.pageIndex;leaveSize=$event.pageSize"></app-list-tools></section>
  <section *ngIf="selected"><h2>Đơn nghỉ #{{selected.id}}</h2><p *ngIf="affectedLoading">Đang kiểm tra lịch hẹn...</p><p *ngIf="affectedError" role="alert">{{affectedError}}</p>
  <div class="table-wrap" *ngIf="!affectedLoading&&!affectedError"><table *ngIf="affected.length"><thead><tr><th>Lịch hẹn</th><th>Tài khoản bệnh nhân</th><th>Điện thoại</th><th>Giờ khám</th><th>Liên hệ</th></tr></thead><tbody><tr *ngFor="let a of affected"><td>#{{a.appointmentId}}</td><td>{{a.patientName}}</td><td>{{a.patientPhone||'Chưa có số'}}</td><td>{{a.startAt|date:'dd/MM/yyyy HH:mm'}}</td><td><button mat-button *ngIf="a.contactId&&!a.contactedAt" [disabled]="busy" (click)="contact(a)">Đánh dấu đã liên hệ</button><span *ngIf="a.contactedAt">Đã liên hệ</span><span *ngIf="!a.contactId">Chưa hủy</span></td></tr></tbody></table><p *ngIf="!affected.length">Không có lịch hẹn bị ảnh hưởng.</p></div>
  <form *ngIf="selected.status==='PENDING'" (ngSubmit)="review('APPROVED')" #reviewForm="ngForm"><label>Lý do xử lý<textarea name="reviewReason" [(ngModel)]="reviewReason" required maxlength="500" rows="3"></textarea></label>
@@ -42,6 +44,7 @@ import { SchedulePlanningService, WeeklyRule, Leave, Affected, leaveLabels, clin
  <button mat-button [disabled]="busy" (click)="selected=null">Đóng</button></section>
  `, styles: [`:host{display:block}h1{font-size:24px}h2{font-size:19px;margin:0 0 12px}p{color:#64748b;overflow-wrap:anywhere}section{background:#fff;border:1px solid #e2e8f0;padding:20px;border-radius:12px;margin:20px 0}form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:20px 0}label{display:flex;flex-direction:column;gap:8px;min-width:0}select,input,textarea{box-sizing:border-box;max-width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;background:white}textarea{width:100%}.actions,.check,form p,label:has(textarea),fieldset{grid-column:1/-1}.actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.check{flex-direction:row;align-items:flex-start}.check input{width:18px;height:18px;flex-shrink:0}article{border-top:1px solid #e2e8f0;padding:18px 0}.table-wrap{overflow:auto;max-width:100%}table{border-collapse:collapse;width:100%;min-width:650px}th,td{text-align:left;padding:12px;border-bottom:1px solid #e2e8f0}li{overflow-wrap:anywhere}fieldset{border:1px solid #e2e8f0;border-radius:10px;padding:16px;min-width:0}legend{font-weight:600;padding:0 6px}.day-options{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}.day-choice{flex-direction:row;align-items:center;gap:6px}.day-choice input{width:18px;height:18px}.time-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:12px;align-items:end;margin-bottom:12px}@media(max-width:700px){form{grid-template-columns:1fr}section{padding:14px}.time-row{grid-template-columns:1fr 1fr}.time-row button{grid-column:1/-1;justify-self:start}}`] })
 export class AdminPlanningComponent implements OnInit {
+    leavePage=0;leaveSize=10;leaveFilters:ListFilters={keyword:'',active:'',from:'',to:''};
     doctors: DoctorResponse[] = [];
     doctorId: number | null = null;
     doctorPage = 0;
@@ -77,7 +80,7 @@ export class AdminPlanningComponent implements OnInit {
     rule = { effectiveFrom: clinicDate(), effectiveTo: new Date(Date.parse(clinicDate() + 'T00:00:00Z') + 90 * 86400000).toISOString().slice(0, 10) };
     constructor(private service: SchedulePlanningService, private doctorService: DoctorService) { }
     ngOnInit() { this.loadDoctors(); this.loadLeaves(); }
-    get filteredLeaves() { return this.leaves.filter(l => !this.statusFilter || l.status === this.statusFilter); }
+    get filteredLeaves() { return this.leaves.filter(l=>(!this.leaveFilters.from||l.endAt.slice(0,10)>=this.leaveFilters.from)&&(!this.leaveFilters.to||l.startAt.slice(0,10)<=this.leaveFilters.to)&&((l.doctorName+' '+l.reason).toLocaleLowerCase('vi').includes(this.leaveFilters.keyword.trim().toLocaleLowerCase('vi')))).filter(l => !this.statusFilter || l.status === this.statusFilter); }
     loadDoctors() { this.doctorsLoading = true; this.doctorError = ''; this.doctorService.getAllForAdmin(this.doctorPage, 100).subscribe({ next: r => { this.doctors = r.data.content; this.doctorLast = r.data.last; this.doctorsLoading = false; }, error: () => { this.doctorError = 'Không tải được danh sách bác sĩ.'; this.doctorsLoading = false; } }); }
     selectDoctor(id: number | null) { this.doctorId = id; this.weekly = []; this.conflicts = []; this.message = ''; this.error = ''; this.loadWeekly(); }
     loadWeekly() { const request = ++this.weeklyRequest; if (!this.doctorId) {

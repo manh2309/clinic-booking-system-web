@@ -1,3 +1,5 @@
+import {OwnAccountService} from '../../../../core/services/own-account.service';
+import {AuthService} from '../../../../core/services/auth.service';
 import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
@@ -9,14 +11,14 @@ describe('Doctor self profile', () => {
   beforeEach(async () => {
     service = jasmine.createSpyObj<DoctorService>('DoctorService', ['getMine']);
     service.getMine.and.returnValue(of({code:1000, message:'Success', data:{id:1, fullName:'Bác sĩ thực tế', specialtyName:'Tim mạch', qualification:'Chuyên khoa', description:'Nội dung hồ sơ '.repeat(100), active:false}}));
-    await TestBed.configureTestingModule({imports:[DoctorProfileComponent, RouterTestingModule], providers:[{provide:DoctorService,useValue:service}]}).compileComponents();
+    await TestBed.configureTestingModule({imports:[DoctorProfileComponent, RouterTestingModule], providers:[{provide:OwnAccountService,useValue:{get:()=>of({data:{username:"doctor",email:"test@example.invalid",phone:""}})}},{provide:AuthService,useValue:{}},{provide:DoctorService,useValue:service}]}).compileComponents();
   });
   for (const width of [390,1440]) {
     it(`reads the self profile and wraps long content at ${width}px`, () => {
       const fixture = TestBed.createComponent(DoctorProfileComponent);
       const host = fixture.nativeElement as HTMLElement; host.style.display='block';host.style.width=width+'px';fixture.detectChanges();
       expect(host.textContent).toContain('Bác sĩ thực tế'); expect(host.textContent).toContain('Ngừng hoạt động');
-      expect(host.textContent).not.toContain('đang phát triển'); expect(host.querySelector('form')).toBeNull();
+      expect(host.textContent).not.toContain('đang phát triển'); expect(host.querySelector('app-account-settings')).toBeTruthy();
       expect(host.scrollWidth).toBeLessThanOrEqual(host.clientWidth+1); fixture.destroy();
     });
   }

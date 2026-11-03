@@ -1,3 +1,5 @@
+import {DoctorPickerComponent} from '../../../../shared/components/doctor-picker/doctor-picker.component';
+import { ListToolsComponent, ListFilters } from '../../../../shared/components/list-tools/list-tools.component';
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
@@ -18,11 +20,17 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
 
 @Component({
   selector: 'app-admin-appointments', standalone: true,
-  imports: [FormsModule, NgIf, NgFor, DatePipe, MatButtonModule, MatFormFieldModule,
+  imports: [DoctorPickerComponent,ListToolsComponent,FormsModule, NgIf, NgFor, DatePipe, MatButtonModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule, MatSnackBarModule, MatDialogModule, QueueBoardComponent, PageHeaderComponent, StatusChipComponent],
   template: `
     <app-page-header title="Lịch hẹn" subtitle="Theo dõi và xử lý lịch hẹn trong phòng khám"></app-page-header>
-    <app-queue-board [admin]="true" (changed)="load()"></app-queue-board>
+    <nav class="view-tabs">
+      <button mat-stroked-button (click)="view='appointments'" [class.selected]="view==='appointments'">Danh sách lịch hẹn</button>
+      <button mat-stroked-button (click)="view='queue'" [class.selected]="view==='queue'">Tiếp nhận và hàng chờ</button>
+    </nav>
+    <div [hidden]="view!=='queue'"><app-queue-board [admin]="true" (changed)="load()"></app-queue-board></div>
+    <div [hidden]="view!=='appointments'">
+    <app-list-tools label="Tìm tên bệnh nhân, số điện thoại hoặc mã lịch" [showDates]="true" (search)="searchList($event)"></app-list-tools>
     <div class="filters">
       <mat-form-field appearance="outline">
         <mat-label>Trạng thái</mat-label>
@@ -31,9 +39,7 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
           <mat-option *ngFor="let item of statuses" [value]="item.value">{{ item.label }}</mat-option>
         </mat-select>
       </mat-form-field>
-      <mat-form-field appearance="outline"><mat-label>Mã bác sĩ</mat-label>
-        <input matInput type="number" min="1" [(ngModel)]="doctorId" />
-      </mat-form-field>
+      <app-doctor-picker [value]="doctorId" (valueChange)="doctorId=$event;resetPage()"></app-doctor-picker>
       <button mat-stroked-button (click)="resetPage()">Lọc</button>
     </div>
     <p *ngIf="loading" role="status">Đang tải lịch hẹn...</p>
@@ -69,9 +75,10 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
         </div>
       </article>
       <mat-paginator [length]="total" [pageIndex]="page" [pageSize]="size" [pageSizeOptions]="[10,20,50]" (page)="changePage($event)"></mat-paginator>
-    </section>
+    </section></div>
   `,
   styles: [`
+    .view-tabs{display:flex;gap:12px;margin:16px 0;flex-wrap:wrap}.view-tabs .selected{background:#e0f2fe;color:#0369a1}
     .filters,.actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.filters{margin:20px 0}
     .list,.reason-panel{background:white;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}
     article{display:grid;grid-template-columns:1fr 1fr auto;gap:20px;padding:20px;border-bottom:1px solid #e2e8f0}
@@ -81,7 +88,10 @@ import { StatusChipComponent, StatusType } from '../../../../shared/components/s
   `],
 })
 export class AdminAppointmentsComponent implements OnInit {
+  view = 'appointments';
   @ViewChild(QueueBoardComponent) queue?: QueueBoardComponent;
+  filters: ListFilters = {keyword:'',active:'',from:'',to:''};
+  searchList(value: ListFilters): void { this.filters=value; this.resetPage(); }
   appointments: AppointmentResponse[] = [];
   status: 'ALL' | AppointmentStatus = 'ALL';
   doctorId: number | null = null;
@@ -112,7 +122,7 @@ export class AdminAppointmentsComponent implements OnInit {
       this.loading = false; this.error = 'Mã bác sĩ phải là số nguyên dương.'; return;
     }
     this.loading = true; this.error = '';
-    this.service.getAdminAppointments(this.page, this.size, this.status === 'ALL' ? undefined : this.status, this.doctorId ?? undefined).subscribe({
+    this.service.getAdminAppointments(this.page, this.size, this.status === 'ALL' ? undefined : this.status, this.doctorId ?? undefined, this.filters).subscribe({
       next: res => { if (request !== this.listRequest) return; this.appointments = res.data.content; this.total = res.data.totalElements; this.loading = false; },
       error: err => { if (request !== this.listRequest) return; this.error = err?.error?.message ?? 'Không thể tải lịch hẹn.'; this.loading = false; },
     });

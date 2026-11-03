@@ -29,11 +29,11 @@ export class DoctorService {
   }
 
   /** GET /admin/doctors?page=0&size=20 (admin only, trả cả bác sĩ active và inactive) */
-  getAllForAdmin(page: number = 0, size: number = 20): Observable<ApiResponse<PageResponse<DoctorResponse>>> {
+  getAllForAdmin(page: number = 0, size: number = 20, keyword: string = ''): Observable<ApiResponse<PageResponse<DoctorResponse>>> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
-    return this.http.get<ApiResponse<PageResponse<DoctorResponse>>>(this.adminUrl, { params });
+    return this.http.get<ApiResponse<PageResponse<DoctorResponse>>>(keyword.trim() ? `${environment.apiBaseUrl}/admin/directory/doctors` : this.adminUrl, { params: keyword.trim() ? params.set('keyword',keyword.trim()) : params });
   }
 
   /** GET /doctors?specialtyId&keyword&page&size */

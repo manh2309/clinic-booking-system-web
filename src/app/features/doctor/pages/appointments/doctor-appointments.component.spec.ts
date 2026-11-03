@@ -48,7 +48,7 @@ describe('Doctor appointment activity permissions', () => {
       jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']));
     component.currentPage = 4;
     component.setStatusFilter('EXPIRED');
-    expect(appointments.getDoctorAppointments).toHaveBeenCalledOnceWith(0, 10, 'EXPIRED');
+    expect(appointments.getDoctorAppointments).toHaveBeenCalledOnceWith(0, 10, 'EXPIRED', component.filters);
   });
 
   it('returns to the preceding page if an update removes the last result on a page', () => {
@@ -62,7 +62,7 @@ describe('Doctor appointment activity permissions', () => {
     component.currentPage = 1;
     component.load();
     expect(component.currentPage).toBe(0);
-    expect(appointments.getDoctorAppointments.calls.allArgs()).toEqual([[1, 10, undefined], [0, 10, undefined]]);
+    expect(appointments.getDoctorAppointments.calls.allArgs()).toEqual([[1, 10, undefined, component.filters], [0, 10, undefined, component.filters]]);
   });
 
   it('allows active doctors to process pending appointments but not finished ones', () => {

@@ -1,3 +1,4 @@
+import { DirectoryService } from '../../../core/services/directory.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -36,6 +37,7 @@ for (const kind of ['doctor', 'specialty'] as const) {
       await TestBed.configureTestingModule({
         imports: [component, NoopAnimationsModule],
         providers: [
+          {provide:DirectoryService,useValue:{search:()=>of({data:{content:[record],totalElements:1}})}},
           {provide: AdminService, useValue: admin},
           {provide: SpecialtyService, useValue: specialties},
           {provide: DoctorService, useValue: {getAllForAdmin: () => of({data:{content:[record],totalElements:1}})}},

@@ -322,6 +322,7 @@ interface SidenavItem {
 
     /* MAIN WRAPPER */
     .main-wrapper {
+      min-width:0;
       flex: 1;
       margin-left: 260px;
       display: flex;
