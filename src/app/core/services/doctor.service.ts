@@ -28,8 +28,8 @@ export class DoctorService {
     return this.http.get<ApiResponse<DoctorResponse>>(`${this.baseUrl}/me`);
   }
 
-  /** GET /admin/doctors?page=0&size=20 (admin only, trả cả bác sĩ active và inactive) */
-  getAllForAdmin(page: number = 0, size: number = 20, keyword: string = ''): Observable<ApiResponse<PageResponse<DoctorResponse>>> {
+  /** GET /admin/doctors?page=0&size=10 (admin only, trả cả bác sĩ active và inactive) */
+  getAllForAdmin(page: number = 0, size: number = 10, keyword: string = ''): Observable<ApiResponse<PageResponse<DoctorResponse>>> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());

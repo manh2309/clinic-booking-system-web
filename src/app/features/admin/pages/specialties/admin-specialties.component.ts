@@ -422,7 +422,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
   `],
 })
 export class AdminSpecialtiesComponent implements OnInit {
-  page=0;size=20;total=0;
+  page=0;size=10;total=0;
   filters:ListFilters={keyword:"",active:"",from:"",to:""};
   searchList(f:ListFilters){this.filters=f;this.page=0;this.loadSpecialties();}
   pageList(e:{pageIndex:number;pageSize:number}){this.page=e.pageIndex;this.size=e.pageSize;this.loadSpecialties();}

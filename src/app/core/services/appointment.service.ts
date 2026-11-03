@@ -30,7 +30,7 @@ export class AppointmentService {
     return this.http.post<ApiResponse<VisitResponse>>(`${this.doctorUrl}/${id}/start`, {});
   }
   queue(admin: boolean, date: string, page = 0, doctorId?: number): Observable<ApiResponse<QueueBoard>> {
-    let params = new HttpParams().set('date', date).set('page', page).set('size', 20);
+    let params = new HttpParams().set('date', date).set('page', page).set('size', 10);
     if (doctorId != null) params = params.set('doctorId', doctorId);
     return this.http.get<ApiResponse<QueueBoard>>(`${environment.apiBaseUrl}/${admin ? 'admin' : 'doctors/me'}/queue`, {params});
   }
@@ -89,7 +89,7 @@ export class AppointmentService {
     );
   }
 
-  getAdminAppointments(page = 0, size = 20, status?: AppointmentStatus, doctorId?: number, filters?: ListFilters): Observable<ApiResponse<PageResponse<AppointmentResponse>>> {
+  getAdminAppointments(page = 0, size = 10, status?: AppointmentStatus, doctorId?: number, filters?: ListFilters): Observable<ApiResponse<PageResponse<AppointmentResponse>>> {
     let params = new HttpParams().set('page', page).set('size', size);
     if (status) params = params.set('status', status);
     if (filters) for (const key of ['keyword','from','to'] as const) if(filters[key]) params=params.set(key,filters[key]);

@@ -164,7 +164,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
 
             <!-- Right Action Block -->
             <div class="ticket-actions">
-              <button mat-stroked-button [disabled]="cancelingIds.has(appt.id)" (click)="reschedule(appt)">Đề xuất đổi giờ / Lịch sử</button>
+              <button mat-stroked-button [disabled]="cancelingIds.has(appt.id)" (click)="reschedule(appt)">Lịch sử đổi giờ</button>
               <button
                 *ngIf="canCancel(appt)"
                 mat-stroked-button
@@ -177,7 +177,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
                 <span>Hủy lịch hẹn</span>
               </button>
 
-              <a mat-button *ngIf="appt.status === 'COMPLETED'" routerLink="/patient/medical-records">Kết quả khám</a>
+              <a mat-stroked-button *ngIf="appt.status === 'COMPLETED'" routerLink="/patient/medical-records">Kết quả khám</a>
               <button
                 *ngIf="appt.status === 'COMPLETED' || appt.status === 'CANCELED'"
                 mat-flat-button
@@ -274,7 +274,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
       border: 1px solid #e2e8f0;
       border-radius: 20px;
       display: grid;
-      grid-template-columns: 200px 1fr 180px;
+      grid-template-columns: 200px minmax(0, 1fr) 210px;
       box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05);
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       overflow: hidden;
@@ -415,6 +415,8 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
       border-left: 1px solid #f1f5f9;
       gap: 10px;
     }
+
+    .ticket-actions button, .ticket-actions a { width:100%; min-height:40px; border-radius:10px; letter-spacing:normal; font-size:13px; white-space:nowrap; }
 
     .btn-cancel {
       border-radius: 10px;

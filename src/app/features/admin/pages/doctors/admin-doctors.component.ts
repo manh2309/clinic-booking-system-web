@@ -536,7 +536,7 @@ export class AdminDoctorsComponent implements OnInit {
 
   // Pagination state
   currentPage = 0;
-  pageSize = 20;
+  pageSize = 10;
   totalDoctors = 0;
 
   constructor(private directory:DirectoryService,

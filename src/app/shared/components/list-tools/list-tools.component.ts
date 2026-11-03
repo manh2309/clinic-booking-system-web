@@ -21,7 +21,7 @@ export function vietnamesePaginator():MatPaginatorIntl {
 `,styles:[`:host{display:block}.list-filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:16px 0;padding:16px;background:white;border:1px solid #dbe5ee;border-radius:12px}label{display:flex;flex-direction:column;gap:7px;font-size:13px;color:#334155}.keyword{flex:1;min-width:200px}input,select{box-sizing:border-box;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;background:white;min-height:42px}button{min-height:42px}@media(max-width:600px){label{flex:1;min-width:130px}.keyword{flex-basis:100%}}`]})
 export class ListToolsComponent {
  @Input() label='Tìm kiếm';@Input() showDates=false;@Input() showActive=false;@Input() paginatorOnly=false;@Input() busy=false;
- @Input() total=0;@Input() page=0;@Input() size=20;
+ @Input() total=0;@Input() page=0;@Input() size=10;
  @Output() search=new EventEmitter<ListFilters>();@Output() pageChange=new EventEmitter<PageEvent>();
  filters:ListFilters={keyword:'',active:'',from:'',to:''};
  submit(){this.search.emit({...this.filters});}clear(){this.filters={keyword:'',active:'',from:'',to:''};this.submit();}

@@ -46,7 +46,7 @@ import { clinicInstant, clinicDateKey } from '../../../core/utils/clinic-time';
         <h3>Đang chờ · {{board.waiting.totalElements}} bệnh nhân</h3>
         <p *ngIf="!board.waiting.content.length">Không có bệnh nhân đang chờ trong ngày đã chọn.</p>
         <article *ngFor="let v of board.waiting.content; let i = index">
-          <div><strong>{{page * 20 + i + 1}} · {{v.patientName}} · Lịch #{{v.appointmentId}}</strong>
+          <div><strong>{{page * 10 + i + 1}} · {{v.patientName}} · Lịch #{{v.appointmentId}}</strong>
             <p>Giờ hẹn {{v.appointmentStartAt | date:'HH:mm'}}–{{v.appointmentEndAt | date:'HH:mm'}} · Có mặt {{v.checkedInAt | date:'HH:mm'}}</p>
             <p *ngIf="v.patientPhone">{{v.patientPhone}}</p>
           </div>
@@ -54,7 +54,7 @@ import { clinicInstant, clinicDateKey } from '../../../core/utils/clinic-time';
           <p *ngIf="!admin && !canStart(v)" class="hint">Chưa đến giờ khám hoặc không thuộc ngày hôm nay.</p>
           <button mat-stroked-button *ngIf="admin" [disabled]="busy" (click)="cancelTarget = v; reason = ''">Rút tiếp nhận</button>
         </article>
-        <mat-paginator *ngIf="board.waiting.totalElements > 20" [length]="board.waiting.totalElements" [pageSize]="20" [pageIndex]="page" (page)="paginate($event)"></mat-paginator>
+        <mat-paginator *ngIf="board.waiting.totalElements > 10" [length]="board.waiting.totalElements" [pageSize]="10" [pageIndex]="page" (page)="paginate($event)"></mat-paginator>
       </ng-container>
       <section class="cancel-panel" *ngIf="cancelTarget">
         <h3>Rút tiếp nhận · Lịch #{{cancelTarget.appointmentId}}</h3>
@@ -88,7 +88,7 @@ export class QueueBoardComponent implements OnInit, OnDestroy {
   loadDoctors(delta: number): void {
     if (this.busy || this.doctorsLoading) return;
     const targetPage = Math.max(0, this.doctorPage + delta); this.doctorsLoading = true; this.doctorsError = '';
-    this.requests.add(this.doctorService.getAllForAdmin(targetPage,20).subscribe({
+    this.requests.add(this.doctorService.getAllForAdmin(targetPage,10).subscribe({
       next: res => { this.doctors = res.data.content; this.doctorPage = targetPage; this.doctorLast = res.data.last; this.doctorsLoading = false;
         if (delta) { this.doctorId = undefined; this.board = null; this.queueRequest?.unsubscribe(); this.loading = false; } },
       error: () => { this.doctorsLoading = false; this.doctorsError = 'Không tải được danh sách bác sĩ.'; },
