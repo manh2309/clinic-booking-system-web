@@ -4,7 +4,7 @@ This project was generated with [Angular CLI](https://github.com/angular/angular
 
 ## Development server
 
-Trên nhánh `codex/local-dev`, khởi động backend Spring Boot ở cổng 9000 rồi chạy `npm start` trong thư mục Web. Mở `http://localhost:4200/`. Web gọi `http://localhost:9000/api/v1` và tự tải lại khi sửa mã.
+Trên nhánh `local-dev`, khởi động backend Spring Boot ở cổng 9000 rồi chạy `npm start` trong thư mục Web. Mở `http://localhost:4200/`. Web gọi `http://localhost:9000/api/v1` và tự tải lại khi sửa mã.
 
 Để xem lỗi API, mở DevTools → Network, thực hiện lại thao tác và xem mã HTTP cùng phần Response. Đối chiếu với log của backend đang chạy trên máy.
 
